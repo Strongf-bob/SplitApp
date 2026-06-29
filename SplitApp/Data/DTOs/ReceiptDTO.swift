@@ -16,6 +16,7 @@ struct ReceiptDTO: Codable, Identifiable {
         case eventId = "event_id"
         case payerId = "payer_id"
         case totalAmount = "total_amount"
+        case totalAmountKopecks = "total_amount_kopecks"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case imageUrl = "image_url"
@@ -49,11 +50,28 @@ struct ReceiptDTO: Codable, Identifiable {
         eventId = try container.decode(UUID.self, forKey: .eventId)
         payerId = try container.decode(UUID.self, forKey: .payerId)
         title = try container.decodeIfPresent(String.self, forKey: .title)
-        totalAmount = try container.decodeLosslessDouble(forKey: .totalAmount)
+        if let totalAmountKopecks = try container.decodeIfPresent(Int.self, forKey: .totalAmountKopecks) {
+            totalAmount = Double(totalAmountKopecks) / 100
+        } else {
+            totalAmount = try container.decodeLosslessDouble(forKey: .totalAmount)
+        }
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
         items = try container.decode([ReceiptItemDTO].self, forKey: .items)
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(eventId, forKey: .eventId)
+        try container.encode(payerId, forKey: .payerId)
+        try container.encodeIfPresent(title, forKey: .title)
+        try container.encode(totalAmount, forKey: .totalAmount)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(items, forKey: .items)
+        try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
     }
 }
 
@@ -66,6 +84,7 @@ struct ReceiptItemDTO: Codable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id, name, cost
+        case costKopecks = "cost_kopecks"
         case receiptId = "receipt_id"
         case shareItems = "share_items"
     }
@@ -90,7 +109,12 @@ struct ReceiptItemDTO: Codable, Identifiable {
         let id = try container.decode(UUID.self, forKey: .id)
         let receiptId = try container.decode(UUID.self, forKey: .receiptId)
         let name = try container.decodeIfPresent(String.self, forKey: .name)
-        let cost = try container.decodeLosslessDouble(forKey: .cost)
+        let cost: Double
+        if let costKopecks = try container.decodeIfPresent(Int.self, forKey: .costKopecks) {
+            cost = Double(costKopecks) / 100
+        } else {
+            cost = try container.decodeLosslessDouble(forKey: .cost)
+        }
 
         if let userIds = try? container.decode([UUID].self, forKey: .shareItems) {
             self.init(
@@ -113,6 +137,15 @@ struct ReceiptItemDTO: Codable, Identifiable {
             cost: cost,
             shareItems: try container.decode([ShareItemDTO].self, forKey: .shareItems)
         )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(receiptId, forKey: .receiptId)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encode(cost, forKey: .cost)
+        try container.encode(shareItems, forKey: .shareItems)
     }
 
     private static func makeNormalizedShareItems(
@@ -182,7 +215,15 @@ struct CreateReceiptRequest: Encodable {
     enum CodingKeys: String, CodingKey {
         case title, items
         case payerId = "payer_id"
-        case totalAmount = "total_amount"
+        case totalAmountKopecks = "total_amount_kopecks"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(payerId, forKey: .payerId)
+        try container.encodeIfPresent(title, forKey: .title)
+        try container.encode(Int((totalAmount * 100).rounded()), forKey: .totalAmountKopecks)
+        try container.encode(items, forKey: .items)
     }
 }
 
@@ -192,16 +233,18 @@ struct CreateReceiptItemRequest: Encodable {
     let shareItems: [CreateShareItemRequest]
 
     enum CodingKeys: String, CodingKey {
-        case name, cost
+        case name
+        case costKopecks = "cost_kopecks"
+        case splitMode = "split_mode"
         case shareItems = "share_items"
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(name, forKey: .name)
-        try container.encode(cost, forKey: .cost)
-        // Backend expects share_items as an array of user UUIDs.
-        try container.encode(shareItems.map(\.userId), forKey: .shareItems)
+        try container.encode(Int((cost * 100).rounded()), forKey: .costKopecks)
+        try container.encode("custom", forKey: .splitMode)
+        try container.encode(shareItems, forKey: .shareItems)
     }
 }
 
@@ -222,7 +265,16 @@ struct UpdateReceiptRequest: Encodable {
 
     enum CodingKeys: String, CodingKey {
         case title, items
-        case totalAmount = "total_amount"
+        case totalAmountKopecks = "total_amount_kopecks"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(title, forKey: .title)
+        if let totalAmount {
+            try container.encode(Int((totalAmount * 100).rounded()), forKey: .totalAmountKopecks)
+        }
+        try container.encodeIfPresent(items, forKey: .items)
     }
 }
 

@@ -7,6 +7,7 @@ struct CreatePaymentEndpoint: Endpoint {
     }
 
     let method: HTTPMethod = .POST
+    let headers: [String: String] = ["Idempotency-Key": UUID().uuidString]
 }
 
 struct ListPaymentsEndpoint: Endpoint {

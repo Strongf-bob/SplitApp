@@ -4,6 +4,7 @@ struct CreateReceiptEndpoint: Endpoint {
     let eventId: UUID
     var path: String { "/api/events/\(eventId.uuidString.lowercased())/receipts" }
     let method: HTTPMethod = .POST
+    let headers: [String: String] = ["Idempotency-Key": UUID().uuidString]
 }
 
 struct ListReceiptsEndpoint: Endpoint {

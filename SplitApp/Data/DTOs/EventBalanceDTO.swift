@@ -8,6 +8,7 @@ struct EventBalanceDTO: Codable {
 
     enum CodingKeys: String, CodingKey {
         case amount
+        case amountKopecks = "amount_kopecks"
         case eventId = "event_id"
         case debitorId = "debitor_id"
         case creditorId = "creditor_id"
@@ -25,6 +26,18 @@ struct EventBalanceDTO: Codable {
         eventId = try container.decode(UUID.self, forKey: .eventId)
         debitorId = try container.decode(UUID.self, forKey: .debitorId)
         creditorId = try container.decode(UUID.self, forKey: .creditorId)
-        amount = try container.decodeLosslessDouble(forKey: .amount)
+        if let amountKopecks = try container.decodeIfPresent(Int.self, forKey: .amountKopecks) {
+            amount = Double(amountKopecks) / 100
+        } else {
+            amount = try container.decodeLosslessDouble(forKey: .amount)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(eventId, forKey: .eventId)
+        try container.encode(debitorId, forKey: .debitorId)
+        try container.encode(creditorId, forKey: .creditorId)
+        try container.encode(amount, forKey: .amount)
     }
 }
