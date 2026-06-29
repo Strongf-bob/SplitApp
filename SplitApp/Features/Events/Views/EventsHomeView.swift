@@ -67,9 +67,19 @@ struct EventsHomeView: View {
                             } else {
                                 VStack(spacing: 8) {
                                     ForEach(viewModel.currentEventBills) { bill in
-                                        BillRowView(bill: bill, onDelete: {}, onTap: {
-                                            onBillTap?(bill.id)
-                                        })
+                                        BillRowView(
+                                            bill: bill,
+                                            canDelete: viewModel.canMutateCurrentEventReceipts,
+                                            onDelete: {
+                                                viewModel.deleteBill(bill)
+                                            },
+                                            loadImageURL: {
+                                                await viewModel.receiptImageURL(for: bill.id)
+                                            },
+                                            onTap: {
+                                                onBillTap?(bill.id)
+                                            }
+                                        )
                                         .transition(.move(edge: .top).combined(with: .opacity))
                                     }
                                 }
@@ -83,8 +93,12 @@ struct EventsHomeView: View {
 
                 HStack(spacing: 12) {
                     ScanButton(action: onScanTap)
+                        .disabled(!viewModel.canMutateCurrentEventReceipts)
+                        .opacity(viewModel.canMutateCurrentEventReceipts ? 1 : 0.45)
 
                     AddButton(action: onAddTap)
+                        .disabled(!viewModel.canMutateCurrentEventReceipts)
+                        .opacity(viewModel.canMutateCurrentEventReceipts ? 1 : 0.45)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)

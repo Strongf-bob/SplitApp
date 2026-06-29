@@ -53,6 +53,10 @@ final class BillViewModel: ObservableObject {
         items.reduce(0) { $0 + $1.amount }
     }
 
+    var isReadOnly: Bool {
+        loadedEvent?.isClosed == true
+    }
+
     var title: String {
         switch mode {
         case .create:
@@ -71,6 +75,9 @@ final class BillViewModel: ObservableObject {
         }
         if let saveDisabledReason {
             return saveDisabledReason
+        }
+        if isReadOnly {
+            return "Событие закрыто. Чек доступен только для просмотра."
         }
         if isUsingCachedData {
             return "Показываем сохранённый чек. Для сохранения изменений нужен интернет."
@@ -96,6 +103,10 @@ final class BillViewModel: ObservableObject {
 
         if !isNetworkAvailable {
             return "Без интернета сохранение пока недоступно."
+        }
+
+        if isReadOnly {
+            return "Событие закрыто. Изменения недоступны."
         }
 
         return nil
@@ -151,6 +162,7 @@ final class BillViewModel: ObservableObject {
     }
 
     func addItem() {
+        guard !isReadOnly else { return }
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
             let newItem = BillItem(name: "", amount: 0, isEditing: true)
             items.append(newItem)
@@ -163,6 +175,7 @@ final class BillViewModel: ObservableObject {
     }
 
     func removeItem(id: UUID) {
+        guard !isReadOnly else { return }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             items.removeAll { $0.id == id }
         }
@@ -177,6 +190,7 @@ final class BillViewModel: ObservableObject {
         amount: Decimal? = nil,
         assignedTo: [Participant]? = nil
     ) {
+        guard !isReadOnly else { return }
         guard let index = items.firstIndex(where: { $0.id == id }) else {
             return
         }
@@ -193,6 +207,7 @@ final class BillViewModel: ObservableObject {
     }
 
     func assignParticipant(to itemId: UUID, participant: Participant) {
+        guard !isReadOnly else { return }
         guard let index = items.firstIndex(where: { $0.id == itemId }) else {
             return
         }
@@ -206,6 +221,7 @@ final class BillViewModel: ObservableObject {
     }
 
     func toggleParticipant(to itemId: UUID, participant: Participant) {
+        guard !isReadOnly else { return }
         guard let index = items.firstIndex(where: { $0.id == itemId }) else {
             return
         }
@@ -265,7 +281,10 @@ final class BillViewModel: ObservableObject {
             return true
         } catch {
             print("[BillViewModel] op=save mode=failure eventId=\(eventId) error=\(error.localizedDescription)")
-            saveErrorMessage = error.localizedDescription
+            saveErrorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось сохранить чек. Проверьте интернет и попробуйте снова."
+            )
             return false
         }
     }

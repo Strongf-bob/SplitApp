@@ -8,9 +8,15 @@ class FriendsViewModel: ObservableObject {
     @Published var debts: [FriendDebt] = []
     @Published var searchText: String = ""
     @Published private(set) var isLoading = false
+    @Published private(set) var settlingDebtIds: Set<UUID> = []
     @Published private(set) var errorMessage: String?
+    @Published private(set) var offlineMessage: String?
 
     private let friendsRepository: any FriendsRepository
+    private let balancesRepository: any BalancesRepository
+    private let paymentsRepository: any PaymentsRepository
+    private let activeEventRepository: any ActiveEventRepository
+    private let currentUserProvider: @MainActor () -> CurrentUser?
     private var hasLoaded = false
 
     var activeDebts: [FriendDebt] {
@@ -24,8 +30,18 @@ class FriendsViewModel: ObservableObject {
         return friends.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
-    init(friendsRepository: any FriendsRepository) {
+    init(
+        friendsRepository: any FriendsRepository,
+        balancesRepository: any BalancesRepository,
+        paymentsRepository: any PaymentsRepository,
+        activeEventRepository: any ActiveEventRepository,
+        currentUserProvider: @escaping @MainActor () -> CurrentUser? = { CurrentUserStore.shared.user }
+    ) {
         self.friendsRepository = friendsRepository
+        self.balancesRepository = balancesRepository
+        self.paymentsRepository = paymentsRepository
+        self.activeEventRepository = activeEventRepository
+        self.currentUserProvider = currentUserProvider
     }
 
     func load() async {
@@ -37,19 +53,74 @@ class FriendsViewModel: ObservableObject {
     func reload() async {
         isLoading = true
         errorMessage = nil
+        offlineMessage = nil
         defer { isLoading = false }
 
         do {
-            let users = try await friendsRepository.listRemoteFriends()
-            friends = users.map(Self.mapUserToFriend)
+            guard let currentUser = currentUserProvider() else {
+                friends = []
+                debts = []
+                errorMessage = "Не удалось определить текущего пользователя. Войдите в аккаунт еще раз."
+                return
+            }
+
+            guard let eventId = await activeEventRepository.getActiveEventId() else {
+                let users = try await friendsRepository.listRemoteFriends()
+                friends = users
+                    .filter { $0.id != currentUser.id }
+                    .map(Self.mapUserToFriend)
+                debts = []
+                offlineMessage = "Выберите событие, чтобы увидеть долги по нему."
+                return
+            }
+
+            async let usersFetch = friendsRepository.listRemoteFriends()
+            async let balancesFetch = balancesRepository.getEventBalances(eventId: eventId)
+
+            let users = try await usersFetch
+            let balances = try await balancesFetch
+            let friendsById = Dictionary(uniqueKeysWithValues: users.map { ($0.id, Self.mapUserToFriend($0)) })
+
+            friends = users
+                .filter { $0.id != currentUser.id }
+                .map(Self.mapUserToFriend)
+            debts = Self.mapBalancesToDebts(
+                balances,
+                eventId: eventId,
+                currentUserId: currentUser.id,
+                friendsById: friendsById
+            )
         } catch {
-            errorMessage = "Не удалось загрузить друзей. Проверьте интернет и попробуйте снова."
+            errorMessage = "Не удалось загрузить друзей и долги. Проверьте интернет и попробуйте снова."
             friends = []
+            debts = []
         }
     }
 
-    func settleDebt(_ debt: FriendDebt) {
-        debts.removeAll { $0.id == debt.id }
+    func settleDebt(_ debt: FriendDebt) async {
+        guard !settlingDebtIds.contains(debt.id) else { return }
+        guard debt.canSettle else {
+            errorMessage = "Этот долг должен закрыть другой участник."
+            return
+        }
+
+        settlingDebtIds.insert(debt.id)
+        errorMessage = nil
+        defer {
+            settlingDebtIds.remove(debt.id)
+        }
+
+        do {
+            let command = CreatePaymentCommand(
+                senderId: debt.senderId,
+                receiverId: debt.receiverId,
+                amount: NSDecimalNumber(decimal: debt.amount).doubleValue
+            )
+            _ = try await paymentsRepository.createPayment(eventId: debt.eventId, command)
+            await reload()
+        } catch {
+            errorMessage = "Не удалось закрыть долг. Проверьте интернет и попробуйте снова."
+        }
     }
 }
 
@@ -71,6 +142,53 @@ private extension FriendsViewModel {
             color: makeStableColor(for: user.id),
             avatarURL: user.avatarURL
         )
+    }
+
+    static func mapBalancesToDebts(
+        _ balances: [EventBalance],
+        eventId: UUID,
+        currentUserId: UUID,
+        friendsById: [UUID: Friend]
+    ) -> [FriendDebt] {
+        balances.compactMap { balance in
+            guard balance.amount > 0 else { return nil }
+
+            if balance.debitorId == currentUserId,
+               let friend = friendsById[balance.creditorId] {
+                return FriendDebt(
+                    id: balance.creditorId,
+                    eventId: eventId,
+                    friend: friend,
+                    amount: Decimal(balance.amount),
+                    type: .owes,
+                    senderId: currentUserId,
+                    receiverId: balance.creditorId,
+                    canSettle: true
+                )
+            }
+
+            if balance.creditorId == currentUserId,
+               let friend = friendsById[balance.debitorId] {
+                return FriendDebt(
+                    id: balance.debitorId,
+                    eventId: eventId,
+                    friend: friend,
+                    amount: Decimal(balance.amount),
+                    type: .owedBy,
+                    senderId: balance.debitorId,
+                    receiverId: currentUserId,
+                    canSettle: false
+                )
+            }
+
+            return nil
+        }
+        .sorted { lhs, rhs in
+            if lhs.amount == rhs.amount {
+                return lhs.friend.name.localizedCaseInsensitiveCompare(rhs.friend.name) == .orderedAscending
+            }
+            return lhs.amount > rhs.amount
+        }
     }
 
     static func makeInitials(from name: String) -> String {

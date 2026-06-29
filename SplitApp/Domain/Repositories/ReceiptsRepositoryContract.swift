@@ -17,4 +17,5 @@ protocol ReceiptsRepository {
     func createReceipt(eventId: UUID, _ command: CreateReceiptCommand) async throws -> Receipt
     func updateReceipt(id: UUID, _ command: UpdateReceiptCommand) async throws -> Receipt
     func deleteReceipt(id: UUID) async throws
+    func getReceiptImagePresignedURL(id: UUID) async throws -> URL
 }

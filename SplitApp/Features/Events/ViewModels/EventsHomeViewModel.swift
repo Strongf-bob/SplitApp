@@ -44,6 +44,14 @@ final class EventsHomeViewModel: ObservableObject {
         currentEventBills.reduce(0) { $0 + $1.amount }
     }
 
+    var currentEventIsClosed: Bool {
+        currentEvent?.isClosed == true
+    }
+
+    var canMutateCurrentEventReceipts: Bool {
+        currentEvent != nil && !currentEventIsClosed
+    }
+
     func loadDataIfNeeded() async {
         guard !isLoaded else { return }
         await loadData()
@@ -76,7 +84,10 @@ final class EventsHomeViewModel: ObservableObject {
 
             isLoaded = true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось загрузить события. Проверьте интернет и попробуйте снова."
+            )
         }
     }
 
@@ -108,7 +119,10 @@ final class EventsHomeViewModel: ObservableObject {
                 balanceSummary = homeData.balanceSummary
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось создать событие. Проверьте интернет и попробуйте снова."
+            )
         }
     }
 
@@ -157,7 +171,37 @@ final class EventsHomeViewModel: ObservableObject {
                         applyCurrentEvent(event)
                     }
                 }
-                errorMessage = error.localizedDescription
+                errorMessage = UserFacingErrorMapper.message(
+                    for: error,
+                    fallback: "Не удалось удалить событие. Проверьте интернет и попробуйте снова."
+                )
+            }
+        }
+    }
+
+    func closeEvent(_ item: EventListItem) {
+        guard item.creatorId == currentUserId, !item.isClosed else { return }
+
+        Task {
+            do {
+                let updated = try await service.updateEvent(
+                    id: item.id,
+                    request: UpdateEventRequest(isClosed: true, name: nil)
+                )
+                guard let eventIndex = allEvents.firstIndex(where: { $0.id == updated.id }) else {
+                    await refreshData()
+                    return
+                }
+                allEvents[eventIndex] = updated
+                latestEvents = allEvents.map(Self.mapEventToListItem)
+                if currentEvent?.id == updated.id {
+                    applyCurrentEvent(updated)
+                }
+            } catch {
+                errorMessage = UserFacingErrorMapper.message(
+                    for: error,
+                    fallback: "Не удалось закрыть событие. Проверьте интернет и попробуйте снова."
+                )
             }
         }
     }
@@ -184,6 +228,46 @@ final class EventsHomeViewModel: ObservableObject {
         }
     }
 
+    func deleteBill(_ bill: BillListItem) {
+        let removedIndex = currentEventBills.firstIndex { $0.id == bill.id }
+
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+            currentEventBills.removeAll { $0.id == bill.id }
+        }
+
+        Task {
+            do {
+                try await service.deleteReceipt(id: bill.id)
+                if let eventId = currentEvent?.id {
+                    await loadReceipts(for: eventId)
+                }
+            } catch {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                    currentEventBills.insert(
+                        bill,
+                        at: min(removedIndex ?? currentEventBills.endIndex, currentEventBills.endIndex)
+                    )
+                }
+                errorMessage = UserFacingErrorMapper.message(
+                    for: error,
+                    fallback: "Не удалось удалить чек. Проверьте интернет и попробуйте снова."
+                )
+            }
+        }
+    }
+
+    func receiptImageURL(for receiptId: UUID) async -> URL? {
+        do {
+            return try await service.getReceiptImagePresignedURL(id: receiptId)
+        } catch {
+            errorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось загрузить фото чека. Попробуйте еще раз."
+            )
+            return nil
+        }
+    }
+
     var currentUserId: UUID? {
         CurrentUserStore.shared.user?.id
     }
@@ -192,6 +276,7 @@ final class EventsHomeViewModel: ObservableObject {
         EventListItem(
             id: event.id,
             creatorId: event.creatorId,
+            isClosed: event.isClosed,
             emoji: event.icon,
             title: event.name,
             subtitle: relativeDateText(from: event.date),
@@ -245,7 +330,8 @@ final class EventsHomeViewModel: ObservableObject {
             subtitle: subtitle,
             amount: amount,
             tone: Self.tone(for: amount),
-            imageURL: receipt.imageUrl.flatMap { URL(string: $0) }
+            imageURL: nil,
+            hasImage: receipt.imageUrl?.isEmpty == false
         )
     }
 

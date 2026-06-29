@@ -2,15 +2,27 @@ import SwiftUI
 
 struct BillRowView: View {
     let bill: BillListItem
+    let canDelete: Bool
     let onDelete: () -> Void
+    let loadImageURL: (() async -> URL?)?
     let onTap: (() -> Void)?
 
     @State private var isDeleting: Bool = false
     @State private var showImageViewer = false
+    @State private var imageViewerURL: URL?
+    @State private var isLoadingImageURL = false
 
-    init(bill: BillListItem, onDelete: @escaping () -> Void, onTap: (() -> Void)? = nil) {
+    init(
+        bill: BillListItem,
+        canDelete: Bool = true,
+        onDelete: @escaping () -> Void,
+        loadImageURL: (() async -> URL?)? = nil,
+        onTap: (() -> Void)? = nil
+    ) {
         self.bill = bill
+        self.canDelete = canDelete
         self.onDelete = onDelete
+        self.loadImageURL = loadImageURL
         self.onTap = onTap
     }
 
@@ -46,58 +58,66 @@ struct BillRowView: View {
             onTap?()
         }
         .sheet(isPresented: $showImageViewer) {
-            if let url = bill.imageURL {
+            if let url = imageViewerURL {
                 ReceiptImageViewerSheet(url: url, title: bill.title)
             }
         }
         .deleteTransition(isDeleting: isDeleting)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
+            if canDelete {
+                Button(role: .destructive) {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
 
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
-                    isDeleting = true
-                }
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                        isDeleting = true
+                    }
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    onDelete()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        onDelete()
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                        Text("Удалить")
+                            .font(.system(size: 12, weight: .medium))
+                    }
                 }
-            } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                    Text("Удалить")
-                        .font(.system(size: 12, weight: .medium))
-                }
+                .tint(.red)
             }
-            .tint(.red)
         }
     }
 
     @ViewBuilder
     private var receiptIcon: some View {
-        if let url = bill.imageURL {
+        if bill.hasImage {
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                showImageViewer = true
+                Task {
+                    isLoadingImageURL = true
+                    defer { isLoadingImageURL = false }
+                    guard let url = await loadImageURL?() else { return }
+                    imageViewerURL = url
+                    showImageViewer = true
+                }
             } label: {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 44, height: 44)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(AppTheme.accent.opacity(0.3), lineWidth: 1)
-                            )
-                    default:
-                        Text(bill.emoji)
-                            .font(.system(size: 28))
-                            .frame(width: 44, height: 44)
+                ZStack {
+                    Text(bill.emoji)
+                        .font(.system(size: 28))
+                        .frame(width: 44, height: 44)
+
+                    if isLoadingImageURL {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "photo")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(AppTheme.accent)
+                            .frame(width: 20, height: 20)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(Circle())
+                            .offset(x: 14, y: 14)
                     }
                 }
             }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ActiveDebtsSection: View {
     let debts: [FriendDebt]
+    let isSettling: (FriendDebt) -> Bool
     let onSettle: (FriendDebt) -> Void
 
     var body: some View {
@@ -11,7 +12,7 @@ struct ActiveDebtsSection: View {
 
             VStack(spacing: 12) {
                 ForEach(Array(debts.enumerated()), id: \.element.id) { index, debt in
-                    FriendDebtCard(debt: debt) {
+                    FriendDebtCard(debt: debt, isSettling: isSettling(debt)) {
                         onSettle(debt)
                     }
                     .padding(.horizontal, 20)

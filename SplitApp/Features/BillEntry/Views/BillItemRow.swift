@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BillItemRow: View {
     let item: BillItem
+    let isReadOnly: Bool
     let onAssign: () -> Void
     let onDelete: () -> Void
     let onUpdate: (String, Decimal) -> Void
@@ -19,11 +20,13 @@ struct BillItemRow: View {
 
     init(
         item: BillItem,
+        isReadOnly: Bool = false,
         onAssign: @escaping () -> Void,
         onDelete: @escaping () -> Void,
         onUpdate: @escaping (String, Decimal) -> Void
     ) {
         self.item = item
+        self.isReadOnly = isReadOnly
         self.onAssign = onAssign
         self.onDelete = onDelete
         self.onUpdate = onUpdate
@@ -48,12 +51,14 @@ struct BillItemRow: View {
                             }
                         )
                     )
+                    .disabled(isReadOnly)
 
                 AmountField(amount: $amount)
                     .frame(width: BillEntryColumns.amountWidth)
                     .onChange(of: amount) { _, newValue in
                         onUpdate(name, newValue)
                     }
+                    .disabled(isReadOnly)
 
                 Button(
                     action: {
@@ -85,6 +90,7 @@ struct BillItemRow: View {
                 )
                 .frame(width: BillEntryColumns.participantWidth)
                 .buttonStyle(PlainButtonStyle())
+                .disabled(isReadOnly)
             }
         }
         .opacity(item.isEditing ? (didAppear ? 1 : 0) : 1)
@@ -103,26 +109,28 @@ struct BillItemRow: View {
         }
         .deleteTransition(isDeleting: isDeleting)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
+            if !isReadOnly {
+                Button(role: .destructive) {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
 
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
-                    isDeleting = true
-                }
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                        isDeleting = true
+                    }
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    onDelete()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        onDelete()
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                        Text("Удалить")
+                            .font(.system(size: 12, weight: .medium))
+                    }
                 }
-            } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                    Text("Удалить")
-                        .font(.system(size: 12, weight: .medium))
-                }
+                .tint(.red)
             }
-            .tint(.red)
         }
     }
 

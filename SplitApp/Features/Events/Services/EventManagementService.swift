@@ -5,7 +5,10 @@ protocol EventManagementServiceProtocol {
     func fetchReceipts(eventId: UUID) async throws -> [ReceiptDTO]
     func createReceipt(eventId: UUID, request: CreateReceiptRequest) async throws -> ReceiptDTO
     func updateReceipt(id: UUID, request: UpdateReceiptRequest) async throws -> ReceiptDTO
+    func deleteReceipt(id: UUID) async throws
+    func getReceiptImagePresignedURL(id: UUID) async throws -> URL
     func createEvent(name: String) async throws -> Event
+    func updateEvent(id: UUID, request: UpdateEventRequest) async throws -> Event
     func deleteEvent(id: UUID) async throws
 }
 
@@ -78,9 +81,22 @@ struct EventManagementService: EventManagementServiceProtocol {
         try await receiptsRepository.updateReceipt(id: id, request)
     }
 
+    func deleteReceipt(id: UUID) async throws {
+        try await receiptsRepository.deleteReceipt(id: id)
+    }
+
+    func getReceiptImagePresignedURL(id: UUID) async throws -> URL {
+        try await receiptsRepository.getReceiptImagePresignedURL(id: id)
+    }
+
     func createEvent(name: String) async throws -> Event {
         let command = CreateEventCommand(name: name)
         return try await eventsRepository.createEvent(command)
+    }
+
+    func updateEvent(id: UUID, request: UpdateEventRequest) async throws -> Event {
+        let command = UpdateEventCommand(isClosed: request.isClosed, name: request.name)
+        return try await eventsRepository.updateEvent(id: id, command)
     }
 
     func deleteEvent(id: UUID) async throws {
