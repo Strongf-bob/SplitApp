@@ -3,6 +3,7 @@ import Foundation
 protocol EventManagementServiceProtocol {
     func fetchHomeData() async throws -> EventsHomeData
     func fetchReceipts(eventId: UUID) async throws -> [ReceiptDTO]
+    func fetchReceiptsPage(eventId: UUID, limit: Int, offset: Int) async throws -> PageResponse<ReceiptDTO>
     func createReceipt(eventId: UUID, request: CreateReceiptRequest) async throws -> ReceiptDTO
     func updateReceipt(id: UUID, request: UpdateReceiptRequest) async throws -> ReceiptDTO
     func deleteReceipt(id: UUID) async throws
@@ -71,6 +72,10 @@ struct EventManagementService: EventManagementServiceProtocol {
 
     func fetchReceipts(eventId: UUID) async throws -> [ReceiptDTO] {
         try await receiptsRepository.listReceipts(eventId: eventId)
+    }
+
+    func fetchReceiptsPage(eventId: UUID, limit: Int, offset: Int) async throws -> PageResponse<ReceiptDTO> {
+        try await receiptsRepository.listReceiptsPage(eventId: eventId, limit: limit, offset: offset)
     }
 
     func createReceipt(eventId: UUID, request: CreateReceiptRequest) async throws -> ReceiptDTO {

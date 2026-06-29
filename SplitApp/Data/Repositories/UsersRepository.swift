@@ -12,7 +12,7 @@ final class UsersDataRepository: UsersRepository {
 
     func listUsers() async throws -> [User] {
         do {
-            let dtos: [UserDTO] = try await apiClient.request(endpoint: ListUsersEndpoint())
+            let dtos = try await fetchAllUsers()
             try await coreDataStore.performBackground { [weak self] context in
                 try self?.upsertUsers(dtos, in: context)
             }
@@ -47,6 +47,23 @@ final class UsersDataRepository: UsersRepository {
             let existing = try context.fetch(fetchRequest).first
             let user = existing ?? CDUser(context: context)
             user.update(from: dto)
+        }
+    }
+
+    private func fetchAllUsers(limit: Int = 50) async throws -> [UserDTO] {
+        var offset = 0
+        var users: [UserDTO] = []
+
+        while true {
+            let page: PageResponse<UserDTO> = try await apiClient.request(
+                endpoint: ListUsersEndpoint(limit: limit, offset: offset)
+            )
+            users.append(contentsOf: page.items)
+
+            guard page.hasMore, !page.items.isEmpty else {
+                return users
+            }
+            offset = page.nextOffset
         }
     }
 }

@@ -10,6 +10,8 @@ final class EventsHomeViewModel: ObservableObject {
     @Published private(set) var currentEvent: EventListItem?
     @Published private(set) var currentEventBills: [BillListItem]
     @Published private(set) var isLoaded = false
+    @Published private(set) var isLoadingMoreReceipts = false
+    @Published private(set) var canLoadMoreReceipts = false
     @Published private(set) var errorMessage: String?
     @Published var isCreatingEvent = false
 
@@ -18,6 +20,9 @@ final class EventsHomeViewModel: ObservableObject {
     private var currentEventData: Event?
     private var allEvents: [Event] = []
     private let receiptEmojiResolver: ReceiptTitleEmojiResolver
+    private let receiptsPageLimit = 50
+    private var receiptDTOs: [ReceiptDTO] = []
+    private var nextReceiptsOffset = 0
 
     init(
         service: EventManagementServiceProtocol,
@@ -69,7 +74,7 @@ final class EventsHomeViewModel: ObservableObject {
             balanceSummary = homeData.balanceSummary
             allEvents = homeData.events
             latestEvents = homeData.events.map(Self.mapEventToListItem)
-            currentEventBills = []
+            resetReceiptsState()
 
             if let resolvedEvent = await resolveCurrentEvent(
                 from: homeData.events,
@@ -80,6 +85,7 @@ final class EventsHomeViewModel: ObservableObject {
             } else {
                 currentEvent = nil
                 currentEventData = nil
+                resetReceiptsState()
             }
 
             isLoaded = true
@@ -102,7 +108,7 @@ final class EventsHomeViewModel: ObservableObject {
             latestEvents.insert(newItem, at: 0)
             allEvents.insert(newEvent, at: 0)
             applyCurrentEvent(newEvent)
-            currentEventBills = []
+            resetReceiptsState()
             await activeEventRepository.setActiveEventId(newEvent.id)
 
             // Обновляем список с бека отдельно, не бросая ошибку наверх
@@ -140,7 +146,7 @@ final class EventsHomeViewModel: ObservableObject {
             } else if isDeletingCurrentEvent {
                 currentEvent = nil
                 currentEventData = nil
-                currentEventBills = []
+                resetReceiptsState()
             }
         }
 
@@ -216,15 +222,47 @@ final class EventsHomeViewModel: ObservableObject {
     }
 
     func loadReceipts(for eventId: UUID) async {
+        resetReceiptsState()
+        await loadReceiptsPage(for: eventId, offset: 0)
+    }
+
+    func loadMoreReceipts() async {
+        guard !isLoadingMoreReceipts,
+              canLoadMoreReceipts,
+              let eventId = currentEvent?.id else {
+            return
+        }
+
+        await loadReceiptsPage(for: eventId, offset: nextReceiptsOffset)
+    }
+
+    private func loadReceiptsPage(for eventId: UUID, offset: Int) async {
+        isLoadingMoreReceipts = true
+        defer { isLoadingMoreReceipts = false }
+
         do {
-            print("🔵 Загружаем чеки для события: \(eventId)")
-            let receipts = try await service.fetchReceipts(eventId: eventId)
-            print("✅ Загружено чеков: \(receipts.count)")
-            currentEventBills = receipts.compactMap(mapReceiptToBillListItem)
-            print("✅ Обновлен список чеков: \(currentEventBills.count)")
+            print("🔵 Загружаем чеки для события: \(eventId), offset: \(offset)")
+            let page = try await service.fetchReceiptsPage(
+                eventId: eventId,
+                limit: receiptsPageLimit,
+                offset: offset
+            )
+
+            if offset == 0 {
+                receiptDTOs = page.items
+            } else {
+                receiptDTOs.append(contentsOf: page.items)
+            }
+
+            nextReceiptsOffset = page.nextOffset
+            canLoadMoreReceipts = page.hasMore
+            currentEventBills = receiptDTOs.compactMap(mapReceiptToBillListItem)
+            print("✅ Загружено чеков: \(page.items.count), всего доступно: \(page.total)")
         } catch {
             print("❌ Ошибка загрузки чеков: \(error)")
-            currentEventBills = []
+            if offset == 0 {
+                resetReceiptsState()
+            }
         }
     }
 
@@ -301,6 +339,13 @@ final class EventsHomeViewModel: ObservableObject {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
+    }
+
+    private func resetReceiptsState() {
+        receiptDTOs = []
+        currentEventBills = []
+        nextReceiptsOffset = 0
+        canLoadMoreReceipts = false
     }
 
     private func mapReceiptToBillListItem(_ receipt: ReceiptDTO) -> BillListItem? {

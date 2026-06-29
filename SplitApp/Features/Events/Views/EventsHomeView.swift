@@ -61,8 +61,17 @@ struct EventsHomeView: View {
                                 .foregroundStyle(AppTheme.textSecondary)
                                 .padding(.horizontal, 20)
 
-                            if viewModel.currentEventBills.isEmpty {
-                                emptyBillsCard
+                            if viewModel.currentEventBills.isEmpty, viewModel.isLoadingMoreReceipts {
+                                loadingBillsCard
+                                    .padding(.horizontal, 20)
+                            } else if viewModel.currentEventBills.isEmpty {
+                                VStack(spacing: 8) {
+                                    emptyBillsCard
+                                    if viewModel.canLoadMoreReceipts {
+                                        receiptLoadMoreButton
+                                            .padding(.top, 4)
+                                    }
+                                }
                                     .padding(.horizontal, 20)
                             } else {
                                 VStack(spacing: 8) {
@@ -81,6 +90,11 @@ struct EventsHomeView: View {
                                             }
                                         )
                                         .transition(.move(edge: .top).combined(with: .opacity))
+                                    }
+
+                                    if viewModel.canLoadMoreReceipts || viewModel.isLoadingMoreReceipts {
+                                        receiptLoadMoreButton
+                                            .padding(.top, 4)
                                     }
                                 }
                                 .padding(.horizontal, 20)
@@ -146,6 +160,56 @@ struct EventsHomeView: View {
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
                 .stroke(AppTheme.textSecondary.opacity(0.16), lineWidth: 1)
         )
+    }
+
+    private var loadingBillsCard: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .tint(AppTheme.accent)
+            Text("Загружаем чеки")
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                .stroke(AppTheme.textSecondary.opacity(0.16), lineWidth: 1)
+        )
+    }
+
+    private var receiptLoadMoreButton: some View {
+        Button {
+            Task {
+                await viewModel.loadMoreReceipts()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                if viewModel.isLoadingMoreReceipts {
+                    ProgressView()
+                        .tint(AppTheme.accent)
+                } else {
+                    Image(systemName: "arrow.down.circle")
+                        .font(.system(size: 18, weight: .semibold))
+                }
+
+                Text(viewModel.isLoadingMoreReceipts ? "Загрузка..." : "Ещё чеки")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .foregroundStyle(AppTheme.accent)
+            .background(.ultraThinMaterial)
+            .background(AppTheme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                    .stroke(AppTheme.cardBorder, lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(viewModel.isLoadingMoreReceipts)
     }
 }
 
