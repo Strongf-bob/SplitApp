@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FriendDebtCard: View {
     let debt: FriendDebt
+    let isSettling: Bool
     let onSettle: () -> Void
 
     @State private var isPressed = false
@@ -29,36 +30,52 @@ struct FriendDebtCard: View {
 
                 Spacer()
 
-                Button(
-                    action: {
-                        hideKeyboard()
-                        onSettle()
-                    },
-                    label: {
-                        Text("Закрыть")
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                if debt.canSettle {
+                    Button(
+                        action: {
+                            hideKeyboard()
+                            onSettle()
+                        },
+                        label: {
+                            Group {
+                                if isSettling {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else {
+                                    Text("Закрыть")
+                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                }
+                            }
+                            .frame(minWidth: 72, minHeight: 34)
                             .foregroundStyle(AppTheme.accent)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
                             .background(AppTheme.accent.opacity(0.15))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                )
-                .buttonStyle(PlainButtonStyle())
-                .scaleEffect(isPressed ? 0.95 : 1.0)
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { _ in
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                isPressed = true
-                            }
                         }
-                        .onEnded { _ in
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                isPressed = false
+                    )
+                    .disabled(isSettling)
+                    .buttonStyle(PlainButtonStyle())
+                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { _ in
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    isPressed = true
+                                }
                             }
-                        }
-                )
+                            .onEnded { _ in
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    isPressed = false
+                                }
+                            }
+                    )
+                } else {
+                    Text("Ожидаем")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .frame(minWidth: 72, minHeight: 34)
+                        .background(AppTheme.surfaceOverlay)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
             }
         }
         .onTapGesture {

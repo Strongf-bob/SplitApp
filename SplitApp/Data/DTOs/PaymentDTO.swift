@@ -16,6 +16,35 @@ struct PaymentDTO: Codable, Identifiable {
         case receiverId = "receiver_id"
         case createdAt = "created_at"
     }
+
+    init(
+        id: UUID,
+        eventId: UUID,
+        senderId: UUID,
+        receiverId: UUID,
+        amount: Double,
+        confirmed: Bool,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.eventId = eventId
+        self.senderId = senderId
+        self.receiverId = receiverId
+        self.amount = amount
+        self.confirmed = confirmed
+        self.createdAt = createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        eventId = try container.decode(UUID.self, forKey: .eventId)
+        senderId = try container.decode(UUID.self, forKey: .senderId)
+        receiverId = try container.decode(UUID.self, forKey: .receiverId)
+        amount = try container.decodeLosslessDouble(forKey: .amount)
+        confirmed = try container.decode(Bool.self, forKey: .confirmed)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+    }
 }
 
 struct CreatePaymentRequest: Codable {

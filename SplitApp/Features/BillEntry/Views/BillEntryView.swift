@@ -51,6 +51,7 @@ struct BillEntryView: View {
                                 ForEach(viewModel.items) { item in
                                     BillItemRow(
                                         item: item,
+                                        isReadOnly: viewModel.isReadOnly,
                                         onAssign: {
                                             viewModel.selectedItemForAssignment = item
                                             showParticipantSheet = true
@@ -79,9 +80,11 @@ struct BillEntryView: View {
                                     .id(item.id)
                                 }
                                 .onDelete { indexSet in
-                                    for index in indexSet {
-                                        let item = viewModel.items[index]
-                                        viewModel.removeItem(id: item.id)
+                                    if !viewModel.isReadOnly {
+                                        for index in indexSet {
+                                            let item = viewModel.items[index]
+                                            viewModel.removeItem(id: item.id)
+                                        }
                                     }
                                 }
                                 .onChange(of: viewModel.items.count) { oldCount, newCount in
@@ -184,6 +187,7 @@ struct BillEntryView: View {
                     .font(AppTheme.fontBody)
                     .foregroundStyle(AppTheme.textPrimary)
                     .focused($isReceiptTitleFocused)
+                    .disabled(viewModel.isReadOnly)
                     .textInputAutocapitalization(.sentences)
                     .submitLabel(.done)
                     .padding(.vertical, 10)
@@ -238,11 +242,13 @@ struct BillEntryView: View {
 
     private var bottomActionPanel: some View {
         VStack(spacing: 0) {
-            AddItemButton {
-                viewModel.addItem()
+            if !viewModel.isReadOnly {
+                AddItemButton {
+                    viewModel.addItem()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
 
             GlassCard {
                 HStack {
@@ -258,13 +264,15 @@ struct BillEntryView: View {
             }
             .padding(.horizontal, 20)
 
-            GlassButton(title: viewModel.saveButtonTitle) {
-                saveAndDismiss()
+            if !viewModel.isReadOnly {
+                GlassButton(title: viewModel.saveButtonTitle) {
+                    saveAndDismiss()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+                .disabled(!viewModel.canSave)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 8)
-            .disabled(!viewModel.canSave)
         }
     }
 

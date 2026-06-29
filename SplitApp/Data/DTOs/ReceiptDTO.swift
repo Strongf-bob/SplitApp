@@ -20,6 +20,41 @@ struct ReceiptDTO: Codable, Identifiable {
         case updatedAt = "updated_at"
         case imageUrl = "image_url"
     }
+
+    init(
+        id: UUID,
+        eventId: UUID,
+        payerId: UUID,
+        title: String?,
+        totalAmount: Double,
+        createdAt: Date,
+        updatedAt: Date,
+        items: [ReceiptItemDTO],
+        imageUrl: String?
+    ) {
+        self.id = id
+        self.eventId = eventId
+        self.payerId = payerId
+        self.title = title
+        self.totalAmount = totalAmount
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.items = items
+        self.imageUrl = imageUrl
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        eventId = try container.decode(UUID.self, forKey: .eventId)
+        payerId = try container.decode(UUID.self, forKey: .payerId)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
+        totalAmount = try container.decodeLosslessDouble(forKey: .totalAmount)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        items = try container.decode([ReceiptItemDTO].self, forKey: .items)
+        imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+    }
 }
 
 struct ReceiptItemDTO: Codable, Identifiable {
@@ -55,7 +90,7 @@ struct ReceiptItemDTO: Codable, Identifiable {
         let id = try container.decode(UUID.self, forKey: .id)
         let receiptId = try container.decode(UUID.self, forKey: .receiptId)
         let name = try container.decodeIfPresent(String.self, forKey: .name)
-        let cost = try container.decode(Double.self, forKey: .cost)
+        let cost = try container.decodeLosslessDouble(forKey: .cost)
 
         if let userIds = try? container.decode([UUID].self, forKey: .shareItems) {
             self.init(
@@ -133,7 +168,7 @@ struct ShareItemDTO: Codable, Identifiable {
             self.id = try container.decode(UUID.self, forKey: .id)
             self.receiptItemId = try container.decode(UUID.self, forKey: .receiptItemId)
             self.userId = try container.decode(UUID.self, forKey: .userId)
-            self.shareValue = try container.decode(Double.self, forKey: .shareValue)
+            self.shareValue = try container.decodeLosslessDouble(forKey: .shareValue)
         }
     }
 }
@@ -192,6 +227,14 @@ struct UpdateReceiptRequest: Encodable {
 }
 
 struct ReceiptImageUploadResponseDTO: Codable {
+    let imageUrl: String
+
+    enum CodingKeys: String, CodingKey {
+        case imageUrl = "image_url"
+    }
+}
+
+struct ReceiptImagePresignedURLResponseDTO: Codable {
     let imageUrl: String
 
     enum CodingKeys: String, CodingKey {

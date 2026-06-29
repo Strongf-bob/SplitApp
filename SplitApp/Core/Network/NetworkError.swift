@@ -12,19 +12,27 @@ enum NetworkError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            "Invalid URL"
+            "Не удалось подготовить запрос."
         case .invalidResponse:
-            "Invalid server response"
+            "Сервер вернул некорректный ответ."
         case let .httpError(statusCode, detail):
-            "HTTP error \(statusCode): \(detail ?? "Unknown error")"
-        case let .decodingError(error):
-            "Decoding error: \(error.localizedDescription)"
+            if (500...599).contains(statusCode) {
+                "Сервер временно недоступен. Попробуйте позже."
+            } else if statusCode == 404 {
+                "Данные не найдены. Обновите экран и попробуйте снова."
+            } else if statusCode == 403 {
+                "Недостаточно прав для этого действия."
+            } else {
+                detail?.isEmpty == false ? detail : "Не удалось выполнить запрос."
+            }
+        case .decodingError:
+            "Не удалось обработать ответ сервера."
         case .unauthorized:
-            "Unauthorized – please log in again"
+            "Сессия истекла. Войдите в аккаунт еще раз."
         case .noData:
-            "No data received from server"
+            "Сервер не вернул данные."
         case .noRefreshToken:
-            "No refresh token available"
+            "Сессия истекла. Войдите в аккаунт еще раз."
         }
     }
 }

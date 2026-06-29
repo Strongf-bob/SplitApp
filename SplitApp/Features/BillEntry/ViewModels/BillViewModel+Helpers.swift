@@ -45,7 +45,10 @@ extension BillViewModel {
             await loadParticipantsFromBackendIfNeeded(for: refreshedEvent)
         } catch {
             if loadedEvent == nil {
-                loadErrorMessage = error.localizedDescription
+                loadErrorMessage = UserFacingErrorMapper.message(
+                    for: error,
+                    fallback: "Не удалось загрузить чек. Проверьте интернет и попробуйте снова."
+                )
             }
         }
 
@@ -100,7 +103,10 @@ extension BillViewModel {
             isUsingCachedData = false
         } catch {
             if loadedReceipt == nil {
-                loadErrorMessage = error.localizedDescription
+                loadErrorMessage = UserFacingErrorMapper.message(
+                    for: error,
+                    fallback: "Не удалось обновить чек. Проверьте интернет и попробуйте снова."
+                )
             } else {
                 isUsingCachedData = true
                 await loadMissingParticipantsForLoadedReceipt()

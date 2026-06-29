@@ -100,6 +100,7 @@ struct EventPickerView: View {
             isSelected: event.id == viewModel.currentEvent?.id,
             isDeleting: deletingEventID == event.id,
             canDelete: event.creatorId == viewModel.currentUserId,
+            canClose: event.creatorId == viewModel.currentUserId && !event.isClosed,
             onTap: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                     viewModel.selectEvent(event)
@@ -109,6 +110,9 @@ struct EventPickerView: View {
             },
             onDelete: {
                 eventPendingDeletion = event
+            },
+            onClose: {
+                viewModel.closeEvent(event)
             }
         )
     }
@@ -254,8 +258,10 @@ private struct SwipeableEventRow: View {
     let isSelected: Bool
     let isDeleting: Bool
     let canDelete: Bool
+    let canClose: Bool
     let onTap: () -> Void
     let onDelete: () -> Void
+    let onClose: () -> Void
 
     var body: some View {
         Button(action: onTap) {
@@ -282,6 +288,10 @@ private struct SwipeableEventRow: View {
                             .font(.system(size: 22))
                             .foregroundStyle(AppTheme.accent)
                             .transition(.scale.combined(with: .opacity))
+                    } else if event.isClosed {
+                        Text("Закрыто")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(AppTheme.textSecondary)
                     } else {
                         Text(event.amount.rubleText(signed: true, minimumFractionDigits: 0))
                             .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -299,6 +309,20 @@ private struct SwipeableEventRow: View {
         .deleteTransition(isDeleting: isDeleting)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if canDelete {
+                if canClose {
+                    Button {
+                        onClose()
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 20, weight: .semibold))
+                            Text("Закрыть")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                    }
+                    .tint(.orange)
+                }
+
                 Button(role: .destructive) {
                     onDelete()
                 } label: {

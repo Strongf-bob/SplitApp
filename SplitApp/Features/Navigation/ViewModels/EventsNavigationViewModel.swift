@@ -48,10 +48,12 @@ final class EventsNavigationViewModel: ObservableObject {
     func handle(_ action: EventsNavigationAction) {
         switch action {
         case .addButtonTapped:
+            guard homeViewModel.canMutateCurrentEventReceipts else { return }
             billEntryDestination = .create(eventId: homeViewModel.currentEvent?.id)
         case let .receiptTapped(eventId, receiptId):
             billEntryDestination = .edit(eventId: eventId, receiptId: receiptId)
         case .scannerCaptureCompleted:
+            guard homeViewModel.canMutateCurrentEventReceipts else { return }
             guard billEntryDestination == nil else { return }
             let billItems = scannerViewModel.items.map {
                 BillItem(name: $0.name, amount: $0.amount)
