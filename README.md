@@ -1,61 +1,48 @@
 # SplitApp
 
-## Использование сети и базы данных на экранах (Views)
+SplitApp - iOS-приложение для совместных расходов: события, участники, чеки, доли, балансы, платежи и авторизация через Yandex OAuth.
 
-### Сеть (APIClient)
-Для всех сетевых запросов используйте синглтон `APIClient.shared`. Он использует современный синтаксис `async/await`. Специфичные методы определены в `extension` для различных сущностей (пользователи, события, чеки).
+## Быстрые ссылки
 
-Пример:
-```swift
-func fetchEvents() async {
-    do {
-        // 1. Получение данных из API
-        let events = try await APIClient.shared.listEvents()
-        
-        // 2. Сохранение в Core Data в фоновом потоке
-        try await CoreDataStore.shared.performBackground { context in
-            try CoreDataStore.shared.upsertEvents(events, in: context)
-            // Нет необходимости вручную сохранять контекст, performBackground сделает это при наличии изменений.
-        }
-    } catch {
-        print("Ошибка сети: \(error)")
-    }
-}
-```
+- Frontend repository: [Strongf-bob/SplitApp](https://github.com/Strongf-bob/SplitApp)
+- Backend repository: [Strongf-bob/SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend)
+- Backend OpenAPI: [openapi.yaml](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml)
+- Backend Wiki source: [docs/wiki](https://github.com/Strongf-bob/SplitAppBackend/tree/main/docs/wiki)
+- Frontend/backend alignment backlog: [FRONTEND_BACKEND_TODO.md](https://github.com/Strongf-bob/SplitApp/blob/main/FRONTEND_BACKEND_TODO.md)
 
-### База данных (CoreDataStore)
-Для локального сохранения данных используйте `CoreDataStore.shared`. 
+## Wiki
 
-- **Чтение данных в SwiftUI:** Используйте обертку `@FetchRequest` внутри ваших view. Либо, если вам нужно получить данные программно, используйте методы вроде `fetchAllEvents(in:)`, передавая в них `CoreDataStore.shared.viewContext`.
-- **Изменение данных:** Обязательно используйте метод `performBackground` для любых операций добавления, обновления или удаления, чтобы не блокировать главный поток (UI thread). Контекст будет сохранен автоматически.
+Русская документация лежит в [docs/wiki](https://github.com/Strongf-bob/SplitApp/tree/main/docs/wiki).
 
-Пример (Сохранение данных):
-```swift
-func saveLocally(dto: EventDTO) async {
-    do {
-        try await CoreDataStore.shared.performBackground { context in
-            try CoreDataStore.shared.upsertEvent(dto, in: context)
-        }
-    } catch {
-        print("Ошибка БД: \(error)")
-    }
-}
-```
+- [Главная](docs/wiki/Home.md)
+- [Обзор проекта](docs/wiki/Project-Overview.md)
+- [Локальный запуск](docs/wiki/Local-Setup.md)
+- [Архитектура iOS-приложения](docs/wiki/iOS-Architecture.md)
+- [Интеграция с backend API](docs/wiki/Backend-Integration.md)
+- [Авторизация и безопасность](docs/wiki/Authentication-And-Security.md)
+- [Локальные данные и синхронизация](docs/wiki/Data-And-Sync.md)
+- [Тесты и проверки](docs/wiki/Testing-And-Quality.md)
+- [Поддержка Wiki](docs/wiki/Wiki-Maintenance.md)
 
-Пример (Получение данных в SwiftUI):
-```swift
-import SwiftUI
+## Коротко о runtime
 
-struct EventsView: View {
-    @FetchRequest(
-        entity: CDEvent.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \CDEvent.createdAt, ascending: false)]
-    ) var events: FetchedResults<CDEvent>
+- Platform: iOS, Swift, SwiftUI.
+- Project: [SplitApp.xcodeproj](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp.xcodeproj).
+- Network: [APIClient.shared](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift) и endpoint structs в [SplitApp/Data/Network/Endpoints](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/Network/Endpoints).
+- Backend base URL сейчас задан в коде как `https://splitapp.tech`.
+- Local persistence: [CoreDataStore](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Database/CoreDataStore.swift).
+- Secure token storage: [KeychainStorage](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/KeychainStorage.swift).
 
-    var body: some View {
-        List(events) { event in
-            Text(event.name ?? "Безымянное событие")
-        }
-    }
-}
-```
+## Разработка
+
+1. Открыть `SplitApp.xcodeproj` в Xcode.
+2. Выбрать scheme `SplitApp`.
+3. Запустить приложение на iOS Simulator или устройстве.
+4. Для backend-разработки держать рядом репозиторий [SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend) и сверять изменения с [Backend Integration](docs/wiki/Backend-Integration.md).
+
+Перед изменениями сетевого контракта синхронизируйте:
+
+- backend route/service/schema code;
+- [openapi.yaml](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml);
+- frontend DTO, mapper, endpoint и repository layer;
+- wiki-страницы в обоих репозиториях.
