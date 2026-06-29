@@ -229,6 +229,9 @@ final class APIClient {
         request.httpMethod = endpoint.method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        for (field, value) in endpoint.headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
 
         if let token = TokenStore.shared.accessToken, !token.isEmpty {
             request.setValue(
