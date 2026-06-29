@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FriendDebtCard: View {
     let debt: FriendDebt
+    let isSettling: Bool
     let onSettle: () -> Void
 
     @State private var isPressed = false
@@ -35,15 +36,22 @@ struct FriendDebtCard: View {
                         onSettle()
                     },
                     label: {
-                        Text("Закрыть")
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
-                            .foregroundStyle(AppTheme.accent)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(AppTheme.accent.opacity(0.15))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        Group {
+                            if isSettling {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Text("Закрыть")
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            }
+                        }
+                        .frame(minWidth: 72, minHeight: 34)
+                        .foregroundStyle(AppTheme.accent)
+                        .background(AppTheme.accent.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 )
+                .disabled(isSettling)
                 .buttonStyle(PlainButtonStyle())
                 .scaleEffect(isPressed ? 0.95 : 1.0)
                 .simultaneousGesture(

@@ -67,7 +67,9 @@ struct EventsHomeView: View {
                             } else {
                                 VStack(spacing: 8) {
                                     ForEach(viewModel.currentEventBills) { bill in
-                                        BillRowView(bill: bill, onDelete: {}, onTap: {
+                                        BillRowView(bill: bill, onDelete: {
+                                            viewModel.deleteBill(bill)
+                                        }, onTap: {
                                             onBillTap?(bill.id)
                                         })
                                         .transition(.move(edge: .top).combined(with: .opacity))

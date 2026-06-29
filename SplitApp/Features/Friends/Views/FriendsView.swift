@@ -2,11 +2,24 @@ import SwiftUI
 
 struct FriendsView: View {
     @StateObject private var viewModel: FriendsViewModel
+    @ObservedObject private var networkMonitor: NetworkMonitor
 
-    init(friendsRepository: any FriendsRepository) {
+    init(
+        friendsRepository: any FriendsRepository,
+        balancesRepository: any BalancesRepository,
+        paymentsRepository: any PaymentsRepository,
+        activeEventRepository: any ActiveEventRepository,
+        networkMonitor: NetworkMonitor
+    ) {
         _viewModel = StateObject(
-            wrappedValue: FriendsViewModel(friendsRepository: friendsRepository)
+            wrappedValue: FriendsViewModel(
+                friendsRepository: friendsRepository,
+                balancesRepository: balancesRepository,
+                paymentsRepository: paymentsRepository,
+                activeEventRepository: activeEventRepository
+            )
         )
+        self.networkMonitor = networkMonitor
     }
 
     var body: some View {
@@ -36,6 +49,7 @@ private extension FriendsView {
     var content: some View {
         VStack(spacing: 0) {
             header
+            offlineBanner
             searchBar
             scrollContent
         }
@@ -53,6 +67,33 @@ private extension FriendsView {
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .padding(.bottom, 8)
+    }
+
+    @ViewBuilder
+    var offlineBanner: some View {
+        if !networkMonitor.isConnected || viewModel.offlineMessage != nil {
+            HStack(spacing: 8) {
+                Image(systemName: networkMonitor.isConnected ? "info.circle" : "wifi.slash")
+                    .font(.system(size: 14, weight: .semibold))
+
+                Text(viewModel.offlineMessage ?? "Нет соединения. Показываем сохраненные данные, если они есть.")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .lineLimit(2)
+
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(AppTheme.textSecondary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(AppTheme.cardBackground.opacity(0.9))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(AppTheme.cardBorder, lineWidth: 1)
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+        }
     }
 
     var scrollContent: some View {
@@ -84,9 +125,12 @@ private extension FriendsView {
         if !viewModel.activeDebts.isEmpty {
             ActiveDebtsSection(
                 debts: viewModel.activeDebts,
+                isSettling: { debt in
+                    viewModel.settlingDebtIds.contains(debt.id)
+                },
                 onSettle: { debt in
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
-                        viewModel.settleDebt(debt)
+                    Task {
+                        await viewModel.settleDebt(debt)
                     }
                 }
             )
@@ -148,7 +192,11 @@ private extension FriendsView {
         FriendsView(
             friendsRepository: FriendsDataRepository(
                 usersRepository: UsersDataRepository()
-            )
+            ),
+            balancesRepository: BalancesDataRepository(),
+            paymentsRepository: PaymentsDataRepository(),
+            activeEventRepository: ActiveEventSelectionDataRepository(),
+            networkMonitor: .shared
         )
     }
 }

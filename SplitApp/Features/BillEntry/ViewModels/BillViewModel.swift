@@ -265,7 +265,10 @@ final class BillViewModel: ObservableObject {
             return true
         } catch {
             print("[BillViewModel] op=save mode=failure eventId=\(eventId) error=\(error.localizedDescription)")
-            saveErrorMessage = error.localizedDescription
+            saveErrorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось сохранить чек. Проверьте интернет и попробуйте снова."
+            )
             return false
         }
     }
