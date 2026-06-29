@@ -76,7 +76,10 @@ final class EventsHomeViewModel: ObservableObject {
 
             isLoaded = true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось загрузить события. Проверьте интернет и попробуйте снова."
+            )
         }
     }
 
@@ -108,7 +111,10 @@ final class EventsHomeViewModel: ObservableObject {
                 balanceSummary = homeData.balanceSummary
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось создать событие. Проверьте интернет и попробуйте снова."
+            )
         }
     }
 
@@ -157,7 +163,10 @@ final class EventsHomeViewModel: ObservableObject {
                         applyCurrentEvent(event)
                     }
                 }
-                errorMessage = error.localizedDescription
+                errorMessage = UserFacingErrorMapper.message(
+                    for: error,
+                    fallback: "Не удалось удалить событие. Проверьте интернет и попробуйте снова."
+                )
             }
         }
     }
@@ -181,6 +190,34 @@ final class EventsHomeViewModel: ObservableObject {
         } catch {
             print("❌ Ошибка загрузки чеков: \(error)")
             currentEventBills = []
+        }
+    }
+
+    func deleteBill(_ bill: BillListItem) {
+        let removedIndex = currentEventBills.firstIndex { $0.id == bill.id }
+
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+            currentEventBills.removeAll { $0.id == bill.id }
+        }
+
+        Task {
+            do {
+                try await service.deleteReceipt(id: bill.id)
+                if let eventId = currentEvent?.id {
+                    await loadReceipts(for: eventId)
+                }
+            } catch {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                    currentEventBills.insert(
+                        bill,
+                        at: min(removedIndex ?? currentEventBills.endIndex, currentEventBills.endIndex)
+                    )
+                }
+                errorMessage = UserFacingErrorMapper.message(
+                    for: error,
+                    fallback: "Не удалось удалить чек. Проверьте интернет и попробуйте снова."
+                )
+            }
         }
     }
 

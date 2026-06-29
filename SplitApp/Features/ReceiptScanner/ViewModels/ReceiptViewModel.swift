@@ -33,7 +33,10 @@ final class ReceiptViewModel {
                 errorMessage = "Не удалось распознать чек"
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось распознать чек"
+            )
         }
     }
 
