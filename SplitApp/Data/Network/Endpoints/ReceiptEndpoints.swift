@@ -8,8 +8,24 @@ struct CreateReceiptEndpoint: Endpoint {
 
 struct ListReceiptsEndpoint: Endpoint {
     let eventId: UUID
+    let limit: Int
+    let offset: Int
+
+    init(eventId: UUID, limit: Int = 50, offset: Int = 0) {
+        self.eventId = eventId
+        self.limit = limit
+        self.offset = offset
+    }
+
     var path: String { "/api/events/\(eventId.uuidString.lowercased())/receipts" }
     let method: HTTPMethod = .GET
+
+    var queryItems: [URLQueryItem]? {
+        [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset))
+        ]
+    }
 }
 
 struct UpdateReceiptEndpoint: Endpoint {

@@ -8,6 +8,20 @@ struct CreateEventEndpoint: Endpoint {
 struct ListEventsEndpoint: Endpoint {
     let path = "/api/events"
     let method: HTTPMethod = .GET
+    let limit: Int
+    let offset: Int
+
+    init(limit: Int = 50, offset: Int = 0) {
+        self.limit = limit
+        self.offset = offset
+    }
+
+    var queryItems: [URLQueryItem]? {
+        [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset))
+        ]
+    }
 }
 
 struct GetEventEndpoint: Endpoint {

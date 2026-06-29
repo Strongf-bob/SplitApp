@@ -339,6 +339,15 @@ extension ReceiptsDataRepository {
         }
     }
 
+    func mergeReceiptsPage(
+        _ dtos: [ReceiptDTO],
+        in context: NSManagedObjectContext
+    ) throws {
+        for dto in dtos {
+            try upsertReceipt(dto, in: context)
+        }
+    }
+
     func syncShareItems(
         _ dtos: [ShareItemDTO],
         for item: CDReceiptItem,

@@ -66,23 +66,25 @@ final class ReceiptsDataRepository: ReceiptsRepository {
         }
     }
 
-    func listReceipts(eventId: UUID) async throws -> [ReceiptDTO] {
+    func listReceiptsPage(eventId: UUID, limit: Int = 50, offset: Int = 0) async throws -> PageResponse<ReceiptDTO> {
         logOperation(
             operation: "list",
             mode: "start",
-            context: "eventId=\(eventId)"
+            context: "eventId=\(eventId) limit=\(limit) offset=\(offset)"
         )
 
         do {
-            let dtos: [ReceiptDTO] = try await apiClient.request(endpoint: ListReceiptsEndpoint(eventId: eventId))
+            let page: PageResponse<ReceiptDTO> = try await apiClient.request(
+                endpoint: ListReceiptsEndpoint(eventId: eventId, limit: limit, offset: offset)
+            )
 
             logOperation(
                 operation: "list",
                 mode: "network_success",
-                context: "eventId=\(eventId) count=\(dtos.count)"
+                context: "eventId=\(eventId) count=\(page.items.count) total=\(page.total)"
             )
 
-            if dtos.isEmpty {
+            if page.items.isEmpty, offset == 0 {
                 let localReceipts = LocalReceiptsStore.shared.getReceipts(for: eventId)
                 if !localReceipts.isEmpty {
                     logOperation(
@@ -90,25 +92,40 @@ final class ReceiptsDataRepository: ReceiptsRepository {
                         mode: "local_fallback_success",
                         context: "eventId=\(eventId) count=\(localReceipts.count)"
                     )
-                    return localReceipts
+                    return PageResponse(
+                        items: localReceipts,
+                        limit: limit,
+                        offset: 0,
+                        total: localReceipts.count
+                    )
                 }
             }
 
             try await coreDataStore.performBackground { [weak self] context in
-                try self?.syncReceipts(dtos, eventId: eventId, in: context)
+                try self?.mergeReceiptsPage(page.items, in: context)
             }
             logOperation(
                 operation: "list",
                 mode: "network_cache_upsert",
-                context: "eventId=\(eventId) count=\(dtos.count)"
+                context: "eventId=\(eventId) count=\(page.items.count)"
             )
-            return dtos
+            return page
         } catch {
-            return handleListReceiptsFallback(
+            let localReceipts = handleListReceiptsFallback(
                 eventId: eventId,
                 networkError: error
             )
+            return PageResponse(
+                items: offset == 0 ? localReceipts : [],
+                limit: limit,
+                offset: offset,
+                total: offset == 0 ? localReceipts.count : offset
+            )
         }
+    }
+
+    func listReceipts(eventId: UUID) async throws -> [ReceiptDTO] {
+        try await fetchAllReceiptDTOs(eventId: eventId)
     }
 
     func updateReceipt(id: UUID, _ request: UpdateReceiptRequest) async throws -> ReceiptDTO {
@@ -189,7 +206,7 @@ final class ReceiptsDataRepository: ReceiptsRepository {
     }
 
     func refreshReceipts(eventId: UUID) async throws -> [Receipt] {
-        let dtos: [ReceiptDTO] = try await apiClient.request(endpoint: ListReceiptsEndpoint(eventId: eventId))
+        let dtos = try await fetchAllReceiptDTOs(eventId: eventId)
         try await coreDataStore.performBackground { [weak self] context in
             try self?.syncReceipts(dtos, eventId: eventId, in: context)
         }
@@ -237,5 +254,20 @@ final class ReceiptsDataRepository: ReceiptsRepository {
         )
         let dto = try await updateReceipt(id: id, request)
         return mapToDomain(dto)
+    }
+
+    private func fetchAllReceiptDTOs(eventId: UUID, limit: Int = 50) async throws -> [ReceiptDTO] {
+        var offset = 0
+        var receipts: [ReceiptDTO] = []
+
+        while true {
+            let page = try await listReceiptsPage(eventId: eventId, limit: limit, offset: offset)
+            receipts.append(contentsOf: page.items)
+
+            guard page.hasMore, !page.items.isEmpty else {
+                return receipts
+            }
+            offset = page.nextOffset
+        }
     }
 }

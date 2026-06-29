@@ -28,7 +28,7 @@ final class PaymentsDataRepository: PaymentsRepository {
 
     func listPayments(eventId: UUID) async throws -> [Payment] {
         do {
-            let dtos: [PaymentDTO] = try await apiClient.request(endpoint: ListPaymentsEndpoint(eventId: eventId))
+            let dtos = try await fetchAllPayments(eventId: eventId)
             try await coreDataStore.performBackground { [weak self] context in
                 try self?.upsertPayments(dtos, in: context)
             }
@@ -77,6 +77,23 @@ final class PaymentsDataRepository: PaymentsRepository {
     private func upsertPayments(_ dtos: [PaymentDTO], in context: NSManagedObjectContext) throws {
         for dto in dtos {
             try upsertPayment(dto, in: context)
+        }
+    }
+
+    private func fetchAllPayments(eventId: UUID, limit: Int = 50) async throws -> [PaymentDTO] {
+        var offset = 0
+        var payments: [PaymentDTO] = []
+
+        while true {
+            let page: PageResponse<PaymentDTO> = try await apiClient.request(
+                endpoint: ListPaymentsEndpoint(eventId: eventId, limit: limit, offset: offset)
+            )
+            payments.append(contentsOf: page.items)
+
+            guard page.hasMore, !page.items.isEmpty else {
+                return payments
+            }
+            offset = page.nextOffset
         }
     }
 }

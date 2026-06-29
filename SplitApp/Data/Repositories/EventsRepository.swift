@@ -61,7 +61,7 @@ final class EventsDataRepository: EventsRepository, EventsRepositoryProtocol {
     }
 
     func refreshEvents(userId: UUID? = nil) async throws -> [Event] {
-        let dtos: [EventDTO] = try await apiClient.request(endpoint: ListEventsEndpoint())
+        let dtos = try await fetchAllEvents()
 
         let fetchedIds = Set(dtos.map(\.id))
         try await coreDataStore.performBackground { [weak self] context in
@@ -215,6 +215,23 @@ final class EventsDataRepository: EventsRepository, EventsRepositoryProtocol {
             fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \CDEvent.createdAt, ascending: false)]
             let cdEvents = try context.fetch(fetchRequest)
             return cdEvents.compactMap { EventMapper.mapToDomain(cdEvent: $0) }
+        }
+    }
+
+    private func fetchAllEvents(limit: Int = 50) async throws -> [EventDTO] {
+        var offset = 0
+        var events: [EventDTO] = []
+
+        while true {
+            let page: PageResponse<EventDTO> = try await apiClient.request(
+                endpoint: ListEventsEndpoint(limit: limit, offset: offset)
+            )
+            events.append(contentsOf: page.items)
+
+            guard page.hasMore, !page.items.isEmpty else {
+                return events
+            }
+            offset = page.nextOffset
         }
     }
 
