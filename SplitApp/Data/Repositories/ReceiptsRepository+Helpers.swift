@@ -8,6 +8,16 @@ extension ReceiptsDataRepository {
             try self?.deleteLocalReceipt(id: id, in: context)
         }
     }
+
+    func getReceiptImagePresignedURL(id: UUID) async throws -> URL {
+        let response: ReceiptImagePresignedURLResponseDTO = try await apiClient.request(
+            endpoint: ReceiptImagePresignedURLEndpoint(id: id)
+        )
+        guard let url = URL(string: response.imageUrl) else {
+            throw NetworkError.invalidURL
+        }
+        return url
+    }
 }
 
 extension ReceiptsDataRepository {

@@ -12,4 +12,19 @@ struct EventBalanceDTO: Codable {
         case debitorId = "debitor_id"
         case creditorId = "creditor_id"
     }
+
+    init(eventId: UUID, debitorId: UUID, creditorId: UUID, amount: Double) {
+        self.eventId = eventId
+        self.debitorId = debitorId
+        self.creditorId = creditorId
+        self.amount = amount
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        eventId = try container.decode(UUID.self, forKey: .eventId)
+        debitorId = try container.decode(UUID.self, forKey: .debitorId)
+        creditorId = try container.decode(UUID.self, forKey: .creditorId)
+        amount = try container.decodeLosslessDouble(forKey: .amount)
+    }
 }

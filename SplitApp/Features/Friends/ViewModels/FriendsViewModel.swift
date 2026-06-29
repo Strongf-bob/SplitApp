@@ -99,6 +99,10 @@ class FriendsViewModel: ObservableObject {
 
     func settleDebt(_ debt: FriendDebt) async {
         guard !settlingDebtIds.contains(debt.id) else { return }
+        guard debt.canSettle else {
+            errorMessage = "Этот долг должен закрыть другой участник."
+            return
+        }
 
         settlingDebtIds.insert(debt.id)
         errorMessage = nil
@@ -158,7 +162,8 @@ private extension FriendsViewModel {
                     amount: Decimal(balance.amount),
                     type: .owes,
                     senderId: currentUserId,
-                    receiverId: balance.creditorId
+                    receiverId: balance.creditorId,
+                    canSettle: true
                 )
             }
 
@@ -171,7 +176,8 @@ private extension FriendsViewModel {
                     amount: Decimal(balance.amount),
                     type: .owedBy,
                     senderId: balance.debitorId,
-                    receiverId: currentUserId
+                    receiverId: currentUserId,
+                    canSettle: false
                 )
             }
 

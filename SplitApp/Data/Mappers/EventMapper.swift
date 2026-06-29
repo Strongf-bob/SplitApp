@@ -11,6 +11,8 @@ enum EventMapper {
 
         return EventListItem(
             id: event.id,
+            creatorId: event.creatorId,
+            isClosed: event.isClosed,
             emoji: event.icon,
             title: event.name,
             subtitle: subtitle,
@@ -28,6 +30,7 @@ enum EventMapper {
             id: dto.id,
             creatorId: dto.creatorId,
             name: dto.name,
+            isClosed: dto.isClosed,
             items: [],
             receipts: [],
             participants: participants,
@@ -59,6 +62,7 @@ enum EventMapper {
             id: id,
             creatorId: cdEvent.creatorId ?? UUID(),
             name: name,
+            isClosed: cdEvent.isClosed,
             items: [],
             receipts: [],
             participants: participants,
