@@ -9,6 +9,7 @@ enum EventAmountTone: Hashable {
 struct EventListItem: Identifiable, Hashable {
     let id: UUID
     let creatorId: UUID
+    let isClosed: Bool
     let emoji: String
     let title: String
     let subtitle: String
@@ -18,6 +19,7 @@ struct EventListItem: Identifiable, Hashable {
     init(
         id: UUID = UUID(),
         creatorId: UUID = UUID(),
+        isClosed: Bool = false,
         emoji: String,
         title: String,
         subtitle: String,
@@ -26,6 +28,7 @@ struct EventListItem: Identifiable, Hashable {
     ) {
         self.id = id
         self.creatorId = creatorId
+        self.isClosed = isClosed
         self.emoji = emoji
         self.title = title
         self.subtitle = subtitle

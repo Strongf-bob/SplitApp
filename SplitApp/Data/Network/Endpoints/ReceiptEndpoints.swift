@@ -38,3 +38,12 @@ struct UploadReceiptImageEndpoint: Endpoint {
 
     let method: HTTPMethod = .POST
 }
+
+struct ReceiptImagePresignedURLEndpoint: Endpoint {
+    let id: UUID
+    var path: String {
+        "/api/receipts/\(id.uuidString)/image/presigned-url"
+    }
+
+    let method: HTTPMethod = .GET
+}

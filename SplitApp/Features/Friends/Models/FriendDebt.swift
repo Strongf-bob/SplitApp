@@ -13,6 +13,7 @@ struct FriendDebt: Identifiable {
     let type: DebtType
     let senderId: UUID
     let receiverId: UUID
+    let canSettle: Bool
 
     init(
         id: UUID = UUID(),
@@ -21,7 +22,8 @@ struct FriendDebt: Identifiable {
         amount: Decimal,
         type: DebtType,
         senderId: UUID,
-        receiverId: UUID
+        receiverId: UUID,
+        canSettle: Bool
     ) {
         self.id = id
         self.eventId = eventId
@@ -30,5 +32,6 @@ struct FriendDebt: Identifiable {
         self.type = type
         self.senderId = senderId
         self.receiverId = receiverId
+        self.canSettle = canSettle
     }
 }

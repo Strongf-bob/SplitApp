@@ -4,6 +4,7 @@ struct Event {
     let id: UUID
     let creatorId: UUID
     let name: String
+    let isClosed: Bool
     let date: Date
     let users: [User]
     var items: [EventReceiptItem]
@@ -19,6 +20,7 @@ struct Event {
         id: UUID = UUID(),
         creatorId: UUID = UUID(),
         name: String,
+        isClosed: Bool = false,
         items: [EventReceiptItem] = [],
         receipts: [Receipt] = [],
         participants: [User] = [],
@@ -32,6 +34,7 @@ struct Event {
         self.id = id
         self.creatorId = creatorId
         self.name = name
+        self.isClosed = isClosed
         self.date = date
         self.items = items
         self.receipts = receipts
