@@ -5,7 +5,7 @@
 - macOS с Xcode.
 - iOS Simulator или физическое устройство.
 - Доступ к repository [Strongf-bob/SplitApp](https://github.com/Strongf-bob/SplitApp).
-- Доступный backend API. По умолчанию frontend обращается к production URL `https://splitapp.tech`.
+- Доступный backend API. По умолчанию frontend обращается к серверу `http://46.243.201.8:8080`.
 - Для полной локальной разработки рядом нужен backend repository [Strongf-bob/SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend).
 
 ## Запуск iOS-приложения
@@ -37,19 +37,18 @@ Local backend URL по умолчанию:
 http://localhost:8000
 ```
 
-## Важное ограничение base URL
+## Backend base URL
 
-Сейчас base URL задан в [APIClient.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift) как:
+Сейчас base URL задан в [APIConfiguration.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIConfiguration.swift) как:
 
 ```swift
-private let baseURL = URL(string: "https://splitapp.tech")!
+static let baseURL = URL(string: "http://46.243.201.8:8080")!
 ```
 
-Для удобной локальной backend-разработки нужен environment-aware switch: production `https://splitapp.tech`, simulator local backend и, при необходимости, staging. Пока такого переключателя нет, локальная проверка backend-интеграции требует временного изменения URL или отдельной настройки.
+Так как текущий сервер доступен по HTTP и IP-адресу, в [Info.plist](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Info.plist) добавлено ATS-исключение для `46.243.201.8`. Для удобной локальной backend-разработки позже можно добавить environment-aware switch: production server, simulator local backend и, при необходимости, staging.
 
 ## Где смотреть ошибки
 
 - Network errors нормализуются в [NetworkError.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/NetworkError.swift).
 - User-facing mapping находится в [UserFacingErrorMapper.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Shared/Errors/UserFacingErrorMapper.swift).
 - Decode failures дополнительно печатают тело ответа в [APIClient.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift), чтобы быстрее поймать рассинхрон DTO и backend schema.
-

@@ -4,7 +4,7 @@ final class APIClient {
     static let shared = APIClient()
 
     private let secureStorage: KeychainStorage
-    private let baseURL = URL(string: "https://splitapp.tech")!
+    private let baseURL = APIConfiguration.baseURL
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
