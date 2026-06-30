@@ -29,7 +29,7 @@ SplitApp - iOS-приложение для совместных расходов
 - Platform: iOS, Swift, SwiftUI.
 - Project: [SplitApp.xcodeproj](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp.xcodeproj).
 - Network: [APIClient.shared](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift) и endpoint structs в [SplitApp/Data/Network/Endpoints](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/Network/Endpoints).
-- Backend base URL сейчас задан в коде как `https://splitapp.tech`.
+- Backend base URL задан в [APIConfiguration.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIConfiguration.swift) как `http://46.243.201.8:8080`.
 - Local persistence: [CoreDataStore](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Database/CoreDataStore.swift).
 - Secure token storage: [KeychainStorage](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/KeychainStorage.swift).
 

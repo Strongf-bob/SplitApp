@@ -40,7 +40,6 @@ struct User: Hashable, Decodable {
         }
 
         let normalizedPath = rawValue.hasPrefix("/") ? rawValue : "/\(rawValue)"
-        let baseURL = URL(string: "https://splitapp.tech")!
-        return URL(string: normalizedPath, relativeTo: baseURL)?.absoluteURL
+        return URL(string: normalizedPath, relativeTo: APIConfiguration.baseURL)?.absoluteURL
     }
 }
