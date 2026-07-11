@@ -3,6 +3,7 @@ import SwiftUI
 struct LoginView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject var viewModel: AuthViewModel
+    @State private var isAuthorizing = false
 
     var body: some View {
         ZStack {
@@ -30,13 +31,18 @@ struct LoginView: View {
                     hasBorder: true,
                     title: "Войти через Яндекс"
                 ) {
+                    guard !isAuthorizing else { return }
+                    isAuthorizing = true
                     Task {
                         let success = await viewModel.login()
                         if success {
                             appState.isLoggedIn = true
                         }
+                        isAuthorizing = false
                     }
                 }
+                .disabled(isAuthorizing)
+                .opacity(isAuthorizing ? 0.7 : 1)
 
                 Text("Продолжая, вы соглашаетесь с условиями сервиса")
                     .font(.footnote)

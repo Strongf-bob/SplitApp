@@ -4,6 +4,7 @@ import YandexLoginSDK
 
 enum AuthError: Error {
     case invalidToken
+    case loginAlreadyInProgress
 }
 
 final class YandexAuthProviderImpl: YandexAuthProvider {
@@ -24,6 +25,9 @@ final class YandexAuthProviderImpl: YandexAuthProvider {
         guard let viewContollerProvider = vcProvider.rootViewController else {
             throw AuthError.invalidToken
         }
+        guard continuation == nil else {
+            throw AuthError.loginAlreadyInProgress
+        }
 
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
@@ -31,9 +35,24 @@ final class YandexAuthProviderImpl: YandexAuthProvider {
             do {
                 try YandexLoginSDK.shared.authorize(with: viewContollerProvider)
             } catch {
-                self.continuation?.resume(throwing: error)
-                self.continuation = nil
+                self.completeLogin(with: .failure(error))
             }
+        }
+    }
+
+    private func completeLogin(with result: Result<UserSessionToken, any Error>) {
+        guard let continuation else {
+            return
+        }
+
+        self.continuation = nil
+
+        switch result {
+        case let .success(token):
+            continuation.resume(returning: token)
+
+        case let .failure(error):
+            continuation.resume(throwing: error)
         }
     }
 }
@@ -46,10 +65,10 @@ extension YandexAuthProviderImpl: YandexLoginSDKObserver {
                 jwt: data.jwt,
                 token: data.token
             )
-            continuation?.resume(returning: authToken)
+            completeLogin(with: .success(authToken))
 
         case let .failure(error):
-            continuation?.resume(throwing: error)
+            completeLogin(with: .failure(error))
             print("Ошибка входа: \(error.localizedDescription)")
         }
     }
