@@ -19,6 +19,11 @@ struct ListUsersEndpoint: Endpoint {
     }
 }
 
+struct CurrentUserEndpoint: Endpoint {
+    let path = "/api/users/me"
+    let method: HTTPMethod = .GET
+}
+
 struct AuthUserEndpoint: Endpoint {
     let path = "/api/login"
     let method: HTTPMethod = .POST

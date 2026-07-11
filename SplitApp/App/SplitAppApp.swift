@@ -97,9 +97,13 @@ struct SplitAppApp: App {
 
         do {
             try await APIClient.shared.refreshAccessTokenIfNeeded()
+            let currentUserDTO: UserDTO = try await APIClient.shared.request(
+                endpoint: CurrentUserEndpoint()
+            )
             await MainActor.run {
-                // Загружаем сохраненные данные пользователя
-                CurrentUserStore.shared.loadFromUserDefaults()
+                CurrentUserStore.shared.updateFromAuth(
+                    UserMapper.mapToDomain(dto: currentUserDTO)
+                )
                 appState.isLoggedIn = true
                 appState.isLoading = false
             }
