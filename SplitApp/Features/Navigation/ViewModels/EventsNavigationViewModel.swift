@@ -83,6 +83,8 @@ final class EventsNavigationViewModel: ObservableObject {
             path.append(.scanner)
         case .eventPicker:
             path.append(.eventPicker)
+        case .inbox:
+            path.append(.inbox)
         }
     }
 }

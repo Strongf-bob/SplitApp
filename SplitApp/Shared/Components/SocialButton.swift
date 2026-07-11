@@ -5,20 +5,32 @@ struct SocialButton: View {
     let backgroundColor: Color
     let textColor: Color
     var hasBorder: Bool = false
+    var title: String? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Group {
-                if icon == "yandex" {
+            if let title {
+                HStack(spacing: 12) {
                     Image(icon)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 112, height: 112)
-                        .clipShape(Circle())
-                        .contentShape(Circle())
-                        .shadow(color: .black.opacity(0.06), radius: 18, y: 8)
-                } else {
+                        .frame(width: 24, height: 24)
+                    Text(title)
+                        .font(.headline)
+                    Spacer()
+                }
+                .padding(.horizontal, 18)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .foregroundStyle(textColor)
+                .background(backgroundColor)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                        .stroke(hasBorder ? AppTheme.cardBorder : .clear, lineWidth: 1)
+                )
+            } else {
+                Group {
                     Image(systemName: icon)
                         .font(.title2)
                         .foregroundColor(textColor)
@@ -36,7 +48,6 @@ struct SocialButton: View {
                 }
             }
         }
-        .frame(width: icon == "yandex" ? 112 : nil, height: icon == "yandex" ? 112 : nil)
         .buttonStyle(.plain)
     }
 }

@@ -43,7 +43,7 @@ struct ProfileCardView: View {
                 }
             }
         }
-        .frame(width: 72, height: 72)
+        .frame(width: 64, height: 64)
         .clipShape(Circle())
         .overlay(
             Circle()
@@ -63,7 +63,7 @@ struct ProfileCardView: View {
             )
 
             Text(initials)
-                .font(.system(size: 27, weight: .bold, design: .rounded))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(.white)
         }
     }

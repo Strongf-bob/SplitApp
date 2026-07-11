@@ -1,8 +1,10 @@
 import SwiftUI
 
 enum BottomTabID: String, Hashable {
+    case home
     case events
     case friends
+    case splitik
     case profile
 }
 
@@ -48,21 +50,26 @@ extension BottomTabConfiguration {
             eventsRepository: dependencies.eventsRepository,
             logoutUseCase: logoutUseCase
         )
+        let eventsView = { (showsCatalog: Bool) in
+            EventsNavigationView(
+                service: dependencies.eventManagementService,
+                eventsRepository: dependencies.eventsRepository,
+                receiptsRepository: dependencies.receiptsRepository,
+                usersRepository: dependencies.usersRepository,
+                activeEventRepository: dependencies.activeEventRepository,
+                networkMonitor: dependencies.networkMonitor,
+                showsCatalog: showsCatalog
+            )
+        }
+
         return BottomTabConfiguration(
             items: [
                 BottomTabItem(
-                    id: .events,
-                    title: "События",
-                    systemImage: "square.grid.2x2"
+                    id: .home,
+                    title: "Главная",
+                    systemImage: "house.fill"
                 ) {
-                    EventsNavigationView(
-                        service: dependencies.eventManagementService,
-                        eventsRepository: dependencies.eventsRepository,
-                        receiptsRepository: dependencies.receiptsRepository,
-                        usersRepository: dependencies.usersRepository,
-                        activeEventRepository: dependencies.activeEventRepository,
-                        networkMonitor: dependencies.networkMonitor
-                    )
+                    eventsView(false)
                 },
                 BottomTabItem(
                     id: .friends,
@@ -78,13 +85,28 @@ extension BottomTabConfiguration {
                     )
                 },
                 BottomTabItem(
+                    id: .splitik,
+                    title: "Сплитик",
+                    systemImage: "sparkles"
+                ) {
+                    SplitikChatView()
+                },
+                BottomTabItem(
+                    id: .events,
+                    title: "События",
+                    systemImage: "calendar"
+                ) {
+                    eventsView(true)
+                },
+                BottomTabItem(
                     id: .profile,
                     title: "Профиль",
                     systemImage: "person.crop.circle"
                 ) {
                     ProfileScreenView(viewModel: profileVM)
                 }
-            ]
+            ],
+            initialTab: .home
         )
     }
 

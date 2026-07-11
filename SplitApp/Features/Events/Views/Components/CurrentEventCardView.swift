@@ -4,31 +4,31 @@ struct CurrentEventCardView: View {
     let event: EventListItem
 
     var body: some View {
-        GlassCard(padding: 14) {
-            HStack(spacing: 12) {
-                Text(event.emoji)
-                    .font(.system(size: 28))
+        HStack(spacing: 12) {
+            Image(systemName: event.isClosed ? "lock.fill" : "calendar")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(.white.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(event.title)
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundStyle(AppTheme.textPrimary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(event.title)
+                    .font(.headline)
+                    .foregroundStyle(.white)
 
-                    Text(event.subtitle)
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
+                Text(event.subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.60))
             }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.55))
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(AppTheme.accent, lineWidth: 2)
-        )
+        .padding(18)
+        .background(.black.opacity(0.92), in: RoundedRectangle(cornerRadius: 20))
     }
 }

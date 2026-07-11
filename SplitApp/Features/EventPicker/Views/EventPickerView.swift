@@ -5,6 +5,7 @@ struct EventPickerView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showCreateSheet = false
+    @State private var showSplitikCreation = false
     @State private var eventPendingDeletion: EventListItem?
     @State private var deletingEventID: UUID?
 
@@ -89,7 +90,7 @@ struct EventPickerView: View {
         } message: {
             Text("Вы точно хотите удалить событие «\(eventPendingDeletion?.title ?? "")»?")
         }
-        .sheet(isPresented: $showCreateSheet) {
+        .fullScreenCover(isPresented: $showCreateSheet) {
             createEventSheet
         }
     }
@@ -182,6 +183,27 @@ struct EventPickerView: View {
                     .opacity(newEventName.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
                     .animation(.easeInOut(duration: 0.2), value: newEventName.isEmpty)
 
+                    Button {
+                        showSplitikCreation = true
+                    } label: {
+                        Label("Создать со Сплитиком", systemImage: "sparkles")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(AppTheme.accent)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 16))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(AppTheme.accent.opacity(0.32), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+
+                    Text("Способ деления указывается при добавлении чека.")
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+
                     Spacer()
                 }
             }
@@ -198,8 +220,9 @@ struct EventPickerView: View {
             .onAppear { isNameFieldFocused = true }
             .ignoresSafeArea(.keyboard, edges: .bottom)
         }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
+        .fullScreenCover(isPresented: $showSplitikCreation) {
+            SplitikChatView(initialDraft: "Помоги создать событие для совместных расходов")
+        }
     }
 
     // MARK: - Helpers

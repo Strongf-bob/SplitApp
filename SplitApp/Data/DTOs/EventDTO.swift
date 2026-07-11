@@ -5,8 +5,8 @@ struct EventDTO: Codable, Identifiable {
     let creatorId: UUID
     let name: String
     let isClosed: Bool
-    let users: [UUID]
-    let participants: [UserDTO]?
+    let users: [UUID]?
+    let participants: [EventParticipantDTO]?
     let createdAt: Date
     let updatedAt: Date
 
@@ -16,6 +16,18 @@ struct EventDTO: Codable, Identifiable {
         case isClosed = "is_closed"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    var participantUserIds: [UUID] {
+        participants?.map(\.userId) ?? users ?? []
+    }
+}
+
+struct EventParticipantDTO: Codable {
+    let userId: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
     }
 }
 

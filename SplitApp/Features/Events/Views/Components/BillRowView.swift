@@ -33,18 +33,19 @@ struct BillRowView: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(bill.title)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
                     Text(bill.subtitle)
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                 }
 
                 Spacer()
 
                 Text(amountLabel)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.headline.weight(.bold))
+                    .monospacedDigit()
                     .foregroundStyle(
                         bill.tone == .neutral
                             ? AnyShapeStyle(AppTheme.textSecondary)
@@ -103,8 +104,9 @@ struct BillRowView: View {
                 }
             } label: {
                 ZStack {
-                    Text(bill.emoji)
-                        .font(.system(size: 28))
+                    Image(systemName: "receipt")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
                         .frame(width: 44, height: 44)
 
                     if isLoadingImageURL {
@@ -123,8 +125,9 @@ struct BillRowView: View {
             }
             .buttonStyle(.plain)
         } else {
-            Text(bill.emoji)
-                .font(.system(size: 28))
+            Image(systemName: "receipt")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
                 .frame(width: 44, height: 44)
         }
     }

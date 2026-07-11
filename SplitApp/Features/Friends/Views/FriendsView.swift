@@ -36,22 +36,23 @@ struct FriendsView: View {
 
 private extension FriendsView {
     var background: some View {
-        ZStack {
-            AppTheme.backgroundGradient
-                .ignoresSafeArea()
-
-            AppTheme.backgroundRadialGlow
-                .ignoresSafeArea()
-        }
-        .dismissKeyboardOnTap()
+        AppTheme.figmaHero
+            .ignoresSafeArea()
+            .dismissKeyboardOnTap()
     }
 
     var content: some View {
         VStack(spacing: 0) {
             header
-            offlineBanner
-            searchBar
-            scrollContent
+            VStack(spacing: 0) {
+                offlineBanner
+                searchBar
+                scrollContent
+            }
+            .background(
+                AppTheme.contentSurface,
+                in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28)
+            )
         }
     }
 

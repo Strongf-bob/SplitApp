@@ -175,11 +175,7 @@ final class EventsDataRepository: EventsRepository, EventsRepositoryProtocol {
         let event = existing ?? CDEvent(context: context)
         event.update(from: dto)
 
-        if let participantDTOs = dto.participants {
-            try upsertUsers(participantDTOs, in: context)
-        }
-
-        let participantIds = dto.participants?.map(\.id) ?? dto.users
+        let participantIds = dto.participantUserIds
         guard !participantIds.isEmpty else {
             event.participants = NSSet()
             return

@@ -23,8 +23,8 @@ enum EventMapper {
 
     /// Maps network/cache DTO to the domain model used by Services and UI.
     static func mapToDomain(dto: EventDTO) -> Event {
-        let participants = dto.participants?.map(UserMapper.mapToDomain(dto:)) ?? []
-        let participantIds = participants.isEmpty ? dto.users : participants.map(\.id)
+        let participants: [User] = []
+        let participantIds = dto.participantUserIds
 
         return Event(
             id: dto.id,
