@@ -8,4 +8,12 @@ final class BottomTabPresentationTests: XCTestCase {
             ["Главная", "Друзья", "Сплитик", "События", "Профиль"]
         )
     }
+
+    func testSplitikKeepsItsCaptionInTheNavigationBar() {
+        let splitik = try! XCTUnwrap(
+            BottomTabPresentation.items.first(where: { $0.id == .splitik })
+        )
+
+        XCTAssertTrue(splitik.showsTitle)
+    }
 }

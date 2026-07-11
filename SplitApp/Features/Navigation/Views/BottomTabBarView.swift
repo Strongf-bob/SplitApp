@@ -33,11 +33,17 @@ struct BottomTabBarView: View {
 
 private struct LiquidGlassTabBar: View {
     @Binding var selectedTab: BottomTabID
+    @Namespace private var glassNamespace
 
     var body: some View {
         if #available(iOS 26.0, *) {
-            tabItems
-                .glassEffect(.regular.tint(AppTheme.tabGlassTint.opacity(0.88)), in: Capsule())
+            GlassEffectContainer(spacing: 10) {
+                tabItems
+                    .glassEffect(
+                        .regular.tint(AppTheme.tabGlassTint.opacity(0.88)),
+                        in: Capsule()
+                    )
+            }
         } else {
             tabItems
                 .background(AppTheme.tabGlassTint.opacity(0.9), in: Capsule())
@@ -55,22 +61,33 @@ private struct LiquidGlassTabBar: View {
                         selectedTab = item.id
                     }
                 } label: {
-                    if item.isPrimaryAction {
+                    VStack(spacing: 4) {
                         Image(systemName: item.systemImage)
-                            .font(.headline.weight(.bold))
-                            .frame(width: 42, height: 42)
-                            .foregroundStyle(.white)
-                    } else {
-                        VStack(spacing: 4) {
-                            Image(systemName: item.systemImage)
-                                .font(.system(size: 16, weight: .semibold))
+                            .font(
+                                .system(
+                                    size: item.isPrimaryAction ? 17 : 16,
+                                    weight: .semibold
+                                )
+                            )
+                        if item.showsTitle {
                             Text(item.title)
                                 .font(.system(size: 10, weight: .semibold, design: .rounded))
                         }
-                        .foregroundStyle(.white.opacity(selectedTab == item.id ? 1 : 0.82))
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .background {
-                            if selectedTab == item.id {
+                    }
+                    .foregroundStyle(.white.opacity(selectedTab == item.id ? 1 : 0.72))
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background {
+                        if selectedTab == item.id {
+                            if #available(iOS 26.0, *) {
+                                Color.clear
+                                    .glassEffect(
+                                        .regular
+                                            .tint(.white.opacity(0.17))
+                                            .interactive(),
+                                        in: Capsule()
+                                    )
+                                    .glassEffectID("selectedTab", in: glassNamespace)
+                            } else {
                                 Capsule().fill(.white.opacity(0.30))
                             }
                         }
