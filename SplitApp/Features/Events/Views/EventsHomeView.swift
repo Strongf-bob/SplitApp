@@ -92,6 +92,7 @@ struct EventsHomeView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(AppTheme.contentSurface, in: UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30))
+        .background(AppTheme.contentSurface.ignoresSafeArea(edges: .bottom))
     }
 
     private var emptyEventCard: some View {
