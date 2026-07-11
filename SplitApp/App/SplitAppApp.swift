@@ -13,7 +13,7 @@ struct SplitAppApp: App {
     init() {
         do {
             try YandexLoginSDK.shared.activate(
-                with: "dfb7a885631f4941bbdc5eb706196fa3"
+                with: YandexOAuthConfiguration.clientID
             )
         } catch {
             print("Ошибка SDK: \(error)")
