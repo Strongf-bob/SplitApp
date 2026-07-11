@@ -1,0 +1,107 @@
+import SwiftUI
+
+struct SplitikChatView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft = ""
+    @StateObject private var viewModel = SplitikChatViewModel()
+
+    init(initialDraft: String = "") {
+        _draft = State(initialValue: initialDraft)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            if viewModel.messages.isEmpty {
+                Spacer()
+                VStack(spacing: 10) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: 66, weight: .bold))
+                        .foregroundStyle(AppTheme.accentDark)
+                        .accessibilityHidden(true)
+                    Text("Напишите первое сообщение.")
+                    Text("Привет, я Сплитик, чем могу помочь?")
+                }
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textTertiary)
+                .multilineTextAlignment(.center)
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 12) {
+                        ForEach(viewModel.messages) { message in
+                            Text(message.text)
+                                .padding(12)
+                                .foregroundStyle(message.role == .user ? .white : AppTheme.textPrimary)
+                                .background(message.role == .user ? AppTheme.accent : .white, in: RoundedRectangle(cornerRadius: 16))
+                                .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            composer
+                .padding(16)
+        }
+        .background(AppTheme.contentSurface.ignoresSafeArea())
+    }
+
+    private var header: some View {
+        HStack {
+            Button {
+                dismiss()
+            } label: {
+                Label("Назад", systemImage: "chevron.left")
+            }
+            .buttonStyle(.plain)
+            Spacer()
+        }
+        .font(.body.weight(.medium))
+        .foregroundStyle(AppTheme.textSecondary)
+        .padding(.horizontal, 20)
+        .frame(height: 64)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white)
+    }
+
+    private var composer: some View {
+        HStack(spacing: 10) {
+            TextField("Сообщение...", text: $draft)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 16)
+                .frame(minHeight: 48)
+                .background(AppTheme.cardBackground, in: Capsule())
+
+            Button {
+                let message = draft
+                draft = ""
+                Task { await viewModel.send(message) }
+            } label: {
+                Group {
+                    if viewModel.isSending {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "arrow.up")
+                    }
+                }
+                .font(.headline.weight(.bold))
+                    .frame(width: 48, height: 48)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.textSecondary.opacity(0.18))
+            .accessibilityLabel("Отправить сообщение Сплитику")
+        }
+        .alert("Сплитик", isPresented: Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button("Понятно", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+    }
+}
+
+#Preview {
+    SplitikChatView()
+}

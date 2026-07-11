@@ -3,6 +3,7 @@ import Foundation
 enum EventsNavigationRoute: Hashable {
     case scanner
     case eventPicker
+    case inbox
 }
 
 struct BillEntryDestination: Identifiable {
@@ -33,6 +34,7 @@ enum EventsNavigationAction: Equatable {
     case addButtonTapped
     case scannerCaptureCompleted
     case currentEventTapped
+    case inboxTapped
     case receiptTapped(eventId: UUID, receiptId: UUID)
 }
 
@@ -51,6 +53,8 @@ struct EventsNavigationRules {
             scanButtonRoute
         case .currentEventTapped:
             .eventPicker
+        case .inboxTapped:
+            .inbox
         case .addButtonTapped, .scannerCaptureCompleted, .receiptTapped:
             nil
         }

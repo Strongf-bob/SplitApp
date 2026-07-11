@@ -42,7 +42,7 @@ struct ProfileSettingsCardView: View {
                     .background(Color.red.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 Text("Выйти")
-                    .foregroundColor(.black)
+                    .foregroundStyle(AppTheme.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .foregroundColor(.gray)

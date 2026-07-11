@@ -7,6 +7,7 @@ struct EventsNavigationView: View {
     private let receiptsRepository: any ReceiptsRepository
     private let usersRepository: any UsersRepository
     private let networkMonitor: NetworkMonitor
+    private let showsCatalog: Bool
 
     init(
         service: EventManagementServiceProtocol,
@@ -15,12 +16,14 @@ struct EventsNavigationView: View {
         usersRepository: any UsersRepository,
         activeEventRepository: any ActiveEventRepository,
         networkMonitor: NetworkMonitor,
+        showsCatalog: Bool = false,
         rules: EventsNavigationRules = .init()
     ) {
         self.eventsRepository = eventsRepository
         self.receiptsRepository = receiptsRepository
         self.usersRepository = usersRepository
         self.networkMonitor = networkMonitor
+        self.showsCatalog = showsCatalog
         _viewModel = StateObject(
             wrappedValue: EventsNavigationViewModel(
                 service: service,
@@ -32,20 +35,29 @@ struct EventsNavigationView: View {
 
     var body: some View {
         NavigationStack(path: $viewModel.path) {
-            EventsHomeView(
-                viewModel: viewModel.homeViewModel,
-                onScanTap: { viewModel.handle(.scanButtonTapped) },
-                onAddTap: { viewModel.handle(.addButtonTapped) },
-                onBillTap: { billId in
-                    guard let eventId = viewModel.homeViewModel.currentEvent?.id else {
-                        return
-                    }
-                    viewModel.handle(.receiptTapped(eventId: eventId, receiptId: billId))
-                },
-                onEventTap: {
-                    viewModel.handle(.currentEventTapped)
+            Group {
+                if showsCatalog {
+                    EventsCatalogView(viewModel: viewModel.homeViewModel)
+                } else {
+                    EventsHomeView(
+                        viewModel: viewModel.homeViewModel,
+                        onScanTap: { viewModel.handle(.scanButtonTapped) },
+                        onAddTap: { viewModel.handle(.addButtonTapped) },
+                        onBillTap: { billId in
+                            guard let eventId = viewModel.homeViewModel.currentEvent?.id else {
+                                return
+                            }
+                            viewModel.handle(.receiptTapped(eventId: eventId, receiptId: billId))
+                        },
+                        onEventTap: {
+                            viewModel.handle(.currentEventTapped)
+                        },
+                        onInboxTap: {
+                            viewModel.handle(.inboxTapped)
+                        }
+                    )
                 }
-            )
+            }
             .task {
                 await viewModel.loadInitialDataIfNeeded()
             }
@@ -71,6 +83,8 @@ struct EventsNavigationView: View {
 
                 case .eventPicker:
                     EventPickerView(viewModel: viewModel.homeViewModel)
+                case .inbox:
+                    InboxView()
                 }
             }
         }

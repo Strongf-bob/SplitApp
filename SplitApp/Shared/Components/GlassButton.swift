@@ -4,8 +4,6 @@ struct GlassButton: View {
     let title: String
     let action: () -> Void
 
-    @State private var isPressed = false
-
     var body: some View {
         Button(
             action: {
@@ -13,29 +11,15 @@ struct GlassButton: View {
             },
             label: {
                 Text(title)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(.headline)
                     .foregroundStyle(AppTheme.accentForeground)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 56)
+                    .frame(minHeight: 52)
                     .background(AppTheme.accentGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
-                    .shadow(color: AppTheme.accent.opacity(0.25), radius: 12, x: 0, y: 4)
-                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
             }
         )
-        .buttonStyle(PlainButtonStyle())
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                        isPressed = true
-                    }
-                }
-                .onEnded { _ in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                        isPressed = false
-                    }
-                }
-        )
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isButton)
     }
 }

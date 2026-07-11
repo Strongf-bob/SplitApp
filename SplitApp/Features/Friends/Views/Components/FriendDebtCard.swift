@@ -5,8 +5,6 @@ struct FriendDebtCard: View {
     let isSettling: Bool
     let onSettle: () -> Void
 
-    @State private var isPressed = false
-
     var body: some View {
         GlassCard(padding: 16) {
             HStack(spacing: 12) {
@@ -14,17 +12,18 @@ struct FriendDebtCard: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(debt.friend.name)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.body.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
                     HStack(spacing: 4) {
                         Text(debt.type == .owedBy ? "Должен вам" : "Вы должны")
-                            .font(.system(size: 15, weight: .regular, design: .rounded))
-                            .foregroundStyle(debt.type == .owedBy ? Color.green : Color.red)
+                            .font(.subheadline)
+                            .foregroundStyle(debt.type == .owedBy ? Color.green : AppTheme.textSecondary)
 
                         Text("₽\(NSDecimalNumber(decimal: debt.amount).stringValue)")
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
-                            .foregroundStyle(debt.type == .owedBy ? Color.green : Color.red)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(debt.type == .owedBy ? Color.green : AppTheme.textPrimary)
+                            .monospacedDigit()
                     }
                 }
 
@@ -43,38 +42,24 @@ struct FriendDebtCard: View {
                                         .controlSize(.small)
                                 } else {
                                     Text("Закрыть")
-                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                        .font(.subheadline.weight(.semibold))
                                 }
                             }
                             .frame(minWidth: 72, minHeight: 34)
                             .foregroundStyle(AppTheme.accent)
-                            .background(AppTheme.accent.opacity(0.15))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .background(AppTheme.surfaceOverlay)
+                            .clipShape(Capsule())
                         }
                     )
                     .disabled(isSettling)
-                    .buttonStyle(PlainButtonStyle())
-                    .scaleEffect(isPressed ? 0.95 : 1.0)
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { _ in
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                    isPressed = true
-                                }
-                            }
-                            .onEnded { _ in
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                    isPressed = false
-                                }
-                            }
-                    )
+                    .buttonStyle(.plain)
                 } else {
                     Text("Ожидаем")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textSecondary)
                         .frame(minWidth: 72, minHeight: 34)
                         .background(AppTheme.surfaceOverlay)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(Capsule())
                 }
             }
         }

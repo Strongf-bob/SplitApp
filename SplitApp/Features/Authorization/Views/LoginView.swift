@@ -6,13 +6,20 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            Color("ColorGreen")
+            AppTheme.figmaHero
                 .ignoresSafeArea()
             VStack(spacing: 0) {
-                Spacer(minLength: 80)
+                Spacer()
 
-                HeaderView()
-                    .padding(.horizontal, 28)
+                Text("Split.")
+                    .font(.system(size: 64, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .accessibilityLabel("SplitApp")
+
+                Text("Делите расходы вместе")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.78))
+                    .padding(.top, 8)
 
                 Spacer()
 
@@ -20,7 +27,8 @@ struct LoginView: View {
                     icon: "yandex",
                     backgroundColor: .white,
                     textColor: .black,
-                    hasBorder: false
+                    hasBorder: true,
+                    title: "Войти через Яндекс"
                 ) {
                     Task {
                         let success = await viewModel.login()
@@ -30,8 +38,15 @@ struct LoginView: View {
                     }
                 }
 
-                Spacer(minLength: 180)
+                Text("Продолжая, вы соглашаетесь с условиями сервиса")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.68))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 16)
+
+                Spacer(minLength: 32)
             }
+            .padding(.horizontal, 24)
         }
     }
 }

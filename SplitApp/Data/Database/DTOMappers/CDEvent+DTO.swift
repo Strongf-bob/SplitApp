@@ -5,7 +5,7 @@ extension CDEvent {
     func toDTO() -> EventDTO {
         let participantSet = (participants as? Set<CDUser>) ?? []
         let participantIds: [UUID] = participantSet.compactMap(\.id)
-        let participantDTOs = participantSet.map { $0.toDTO() }
+        let participantDTOs = participantSet.compactMap(\.id).map { EventParticipantDTO(userId: $0) }
 
         return EventDTO(
             id: id!,
