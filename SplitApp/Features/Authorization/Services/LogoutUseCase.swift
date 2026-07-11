@@ -14,6 +14,7 @@ final class LogoutUseCase {
     func execute() {
         TokenStore.shared.clear()
         secureStorage.delete("refresh_token")
+        CurrentUserStore.shared.clear()
 
         do {
             try YandexLoginSDK.shared.logout()
