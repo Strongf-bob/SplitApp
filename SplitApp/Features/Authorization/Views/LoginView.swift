@@ -44,7 +44,8 @@ struct LoginView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 16)
 
-                Spacer(minLength: 32)
+                Color.clear
+                    .frame(height: 32)
             }
             .padding(.horizontal, 24)
         }
