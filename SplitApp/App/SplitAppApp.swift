@@ -6,6 +6,8 @@ struct SplitAppApp: App {
     private let dependencies = AppDependencies.live
 
     @StateObject private var appState = AppState()
+    @State private var isShowingLaunchScreen = true
+    @State private var launchStartedAt = Date()
     private let viewModel: AuthViewModel
 
     init() {
@@ -41,25 +43,41 @@ struct SplitAppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if appState.isLoading {
-                    ProgressView()
-                } else if appState.isLoggedIn {
-                    ContentView(dependencies: dependencies, appState: appState)
-                } else {
-                    LoginView(viewModel: viewModel)
-                        .onOpenURL { url in
-                            do {
-                                try YandexLoginSDK.shared.handleOpenURL(url)
-                                print("URL успешно передан в SDK")
-                            } catch {
-                                print("SDK не смог обработать URL: \(error)")
+            ZStack {
+                Group {
+                    if appState.isLoading {
+                        ProgressView()
+                    } else if appState.isLoggedIn {
+                        ContentView(dependencies: dependencies, appState: appState)
+                    } else {
+                        LoginView(viewModel: viewModel)
+                            .onOpenURL { url in
+                                do {
+                                    try YandexLoginSDK.shared.handleOpenURL(url)
+                                    print("URL успешно передан в SDK")
+                                } catch {
+                                    print("SDK не смог обработать URL: \(error)")
+                                }
                             }
-                        }
+                    }
+                }
+
+                if isShowingLaunchScreen {
+                    SplitLaunchView()
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
             }
             .task {
                 await bootstrap()
+                let remainingDuration = SplitLaunchPresentation.remainingDuration(since: launchStartedAt)
+                if remainingDuration > 0 {
+                    try? await Task.sleep(for: .seconds(remainingDuration))
+                }
+
+                withAnimation(.easeOut(duration: 0.12)) {
+                    isShowingLaunchScreen = false
+                }
             }
             .environmentObject(appState)
         }
