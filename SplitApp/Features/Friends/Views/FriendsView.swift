@@ -53,6 +53,7 @@ private extension FriendsView {
                 AppTheme.contentSurface,
                 in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28)
             )
+            .background(AppTheme.contentSurface.ignoresSafeArea(edges: .bottom))
         }
     }
 
