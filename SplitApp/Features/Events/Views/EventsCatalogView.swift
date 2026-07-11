@@ -70,6 +70,7 @@ struct EventsCatalogView: View {
                 .padding(10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .background(AppTheme.contentSurface, in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
+                .background(AppTheme.contentSurface.ignoresSafeArea(edges: .bottom))
             }
         }
         .navigationBarHidden(true)
