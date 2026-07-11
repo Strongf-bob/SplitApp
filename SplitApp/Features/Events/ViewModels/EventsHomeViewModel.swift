@@ -407,12 +407,16 @@ final class EventsHomeViewModel: ObservableObject {
         currentEvent = Self.mapEventToListItem(event)
         LocalEventStore.shared.setCurrentEvent(
             id: event.id,
-            participants: Array(
-                Dictionary(
-                    uniqueKeysWithValues: (event.participants + event.users).map { ($0.id, $0) }
-                ).values
-            )
+            participants: Self.participantsForLocalStore(from: event)
         )
+    }
+
+    static func participantsForLocalStore(from event: Event) -> [User] {
+        var seenParticipantIDs = Set<UUID>()
+
+        return (event.participants + event.users).filter { participant in
+            seenParticipantIDs.insert(participant.id).inserted
+        }
     }
 
     private func normalizedReceiptTitle(_ title: String?) -> String {
