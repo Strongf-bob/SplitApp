@@ -16,8 +16,11 @@ final class CurrentUserStore: ObservableObject {
     static let shared = CurrentUserStore()
 
     @Published var user: CurrentUser?
+    private let cache: CurrentUserCaching
 
-    private init() {}
+    init(cache: CurrentUserCaching = UserDefaultsCurrentUserCache()) {
+        self.cache = cache
+    }
 
     func updateFromAuth(_ authUser: User) {
         let initials = makeInitials(from: authUser.name)
@@ -33,24 +36,12 @@ final class CurrentUserStore: ObservableObject {
             phoneNumber: authUser.phoneNumber
         )
 
-        print("✅ CurrentUserStore: Updated user - \(authUser.name) (ID: \(authUser.id))")
-        if let avatarURL {
-            print("🖼️ CurrentUserStore: Avatar URL - \(avatarURL.absoluteString)")
-        } else {
-            print("⚠️ CurrentUserStore: No avatar URL (avatarUrl from API: \(authUser.avatarUrl ?? "nil"))")
-        }
-
-        // Сохраняем в UserDefaults для быстрого доступа
-        saveToUserDefaults()
+        saveToCache()
     }
 
-    func loadFromUserDefaults() {
-        guard let data = UserDefaults.standard.data(forKey: "currentUser"),
-              let decoded = try? JSONDecoder().decode(CurrentUserData.self, from: data)
-        else {
-            print("⚠️ CurrentUserStore: No saved user in UserDefaults")
-            return
-        }
+    @discardableResult
+    func restoreCachedUser() -> CurrentUser? {
+        guard let decoded = cache.load() else { return nil }
 
         user = CurrentUser(
             id: decoded.id,
@@ -61,27 +52,28 @@ final class CurrentUserStore: ObservableObject {
             email: decoded.email,
             phoneNumber: decoded.phoneNumber
         )
-        print("✅ CurrentUserStore: Loaded user from UserDefaults - \(decoded.name)")
+        return user
+    }
+
+    func clearInMemoryUser() {
+        user = nil
     }
 
     func clear() {
-        user = nil
-        UserDefaults.standard.removeObject(forKey: "currentUser")
+        clearInMemoryUser()
+        cache.clear()
     }
 
-    private func saveToUserDefaults() {
+    private func saveToCache() {
         guard let user else { return }
-        let data = CurrentUserData(
+        cache.save(CurrentUserData(
             id: user.id,
             name: user.name,
             initials: user.initials,
             avatarURLString: user.avatarURL?.absoluteString,
             email: user.email,
             phoneNumber: user.phoneNumber
-        )
-        if let encoded = try? JSONEncoder().encode(data) {
-            UserDefaults.standard.set(encoded, forKey: "currentUser")
-        }
+        ))
     }
 
     private func makeInitials(from name: String) -> String {
@@ -97,7 +89,7 @@ final class CurrentUserStore: ObservableObject {
     }
 }
 
-private struct CurrentUserData: Codable {
+struct CurrentUserData: Codable {
     let id: UUID
     let name: String
     let initials: String
