@@ -40,6 +40,20 @@ struct SplitikChatView: View {
                     .padding(16)
                 }
             }
+            if viewModel.isSending {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Готовлю ответ")
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Сплитик готовит ответ")
+            }
             composer
                 .padding(16)
         }
@@ -69,7 +83,7 @@ struct SplitikChatView: View {
             TextField("Сообщение...", text: $draft)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 16)
-                .frame(minHeight: 48)
+                .frame(height: 48)
                 .background(AppTheme.cardBackground, in: Capsule())
 
             Button {
@@ -88,7 +102,7 @@ struct SplitikChatView: View {
                     .frame(width: 48, height: 48)
             }
             .buttonStyle(.borderedProminent)
-            .tint(AppTheme.textSecondary.opacity(0.18))
+            .tint(AppTheme.accent)
             .accessibilityLabel("Отправить сообщение Сплитику")
         }
         .alert("Сплитик", isPresented: Binding(
