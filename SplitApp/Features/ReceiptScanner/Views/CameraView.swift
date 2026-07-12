@@ -9,6 +9,7 @@ struct CameraView: View {
     @State private var cameraBox = CameraBox()
     @State private var showPhotoPicker = false
     @State private var isDismissing = false
+    @State private var isCapturing = false
     @Environment(\.dismiss) private var dismiss
 
     private var camera: CameraManager {
@@ -76,7 +77,10 @@ struct CameraView: View {
 
                     // Center: capture button
                     Button {
+                        isCapturing = true
                         camera.capture { image in
+                            isCapturing = false
+                            guard let image else { return }
                             Task { await viewModel.process(image: image) }
                         }
                     } label: {
@@ -89,7 +93,7 @@ struct CameraView: View {
                                 .frame(width: 66, height: 66)
                         }
                     }
-                    .disabled(viewModel.isScanning)
+                    .disabled(viewModel.isScanning || isCapturing)
 
                     Spacer()
 
@@ -147,21 +151,28 @@ private final class CameraBox {
 private final class CameraManager: NSObject {
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
-    private var captureHandler: ((UIImage) -> Void)?
+    private let sessionQueue = DispatchQueue(
+        label: "tech.splitapp.camera.session",
+        qos: .userInitiated
+    )
+    private var captureState = CameraCaptureState()
+    private var captureHandler: ((UIImage?) -> Void)?
 
     func requestAccessAndStart() {
         Task {
             let granted = await AVCaptureDevice.requestAccess(for: .video)
             guard granted else { return }
-            setup()
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                self?.session.startRunning()
+            sessionQueue.async { [weak self] in
+                guard let self else { return }
+                guard self.setup() else { return }
+                self.session.startRunning()
+                self.captureState.markReady()
             }
         }
     }
 
-    private func setup() {
-        guard session.inputs.isEmpty else { return }
+    private func setup() -> Bool {
+        guard session.inputs.isEmpty else { return session.outputs.contains(photoOutput) }
         session.beginConfiguration()
         session.sessionPreset = .photo
 
@@ -171,26 +182,69 @@ private final class CameraManager: NSObject {
             session.canAddInput(input)
         else {
             session.commitConfiguration()
-            return
+            return false
         }
 
         session.addInput(input)
-        if session.canAddOutput(photoOutput) {
-            session.addOutput(photoOutput)
+        guard session.canAddOutput(photoOutput) else {
+            session.commitConfiguration()
+            return false
         }
+        session.addOutput(photoOutput)
         session.commitConfiguration()
+        return true
     }
 
     func stop() {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.session.stopRunning()
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            self.captureState.markStopped()
+            let handler = self.captureHandler
+            self.captureHandler = nil
+            if self.session.isRunning {
+                self.session.stopRunning()
+            }
+            DispatchQueue.main.async {
+                handler?(nil)
+            }
         }
     }
 
-    func capture(completion: @escaping (UIImage) -> Void) {
-        guard session.isRunning else { return }
-        captureHandler = completion
-        photoOutput.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
+    func capture(completion: @escaping (UIImage?) -> Void) {
+        sessionQueue.async { [weak self] in
+            guard let self, self.captureState.beginCapture() else {
+                DispatchQueue.main.async {
+                    completion(nil)
+                }
+                return
+            }
+            self.captureHandler = completion
+            self.photoOutput.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
+        }
+    }
+}
+
+struct CameraCaptureState {
+    private(set) var isReady = false
+    private(set) var isCapturing = false
+
+    mutating func markReady() {
+        isReady = true
+    }
+
+    mutating func markStopped() {
+        isReady = false
+        isCapturing = false
+    }
+
+    mutating func beginCapture() -> Bool {
+        guard isReady, !isCapturing else { return false }
+        isCapturing = true
+        return true
+    }
+
+    mutating func finishCapture() {
+        isCapturing = false
     }
 }
 
@@ -200,12 +254,23 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
-        guard error == nil,
-              let data = photo.fileDataRepresentation(),
-              let image = UIImage(data: data) else { return }
-        DispatchQueue.main.async { [weak self] in
-            self?.captureHandler?(image)
-            self?.captureHandler = nil
+        let image: UIImage?
+        if error == nil,
+           let data = photo.fileDataRepresentation()
+        {
+            image = UIImage(data: data)
+        } else {
+            image = nil
+        }
+
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            self.captureState.finishCapture()
+            let handler = self.captureHandler
+            self.captureHandler = nil
+            DispatchQueue.main.async {
+                handler?(image)
+            }
         }
     }
 }
