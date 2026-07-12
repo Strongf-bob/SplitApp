@@ -4,7 +4,9 @@ import XCTest
 @MainActor
 final class LogoutUseCaseTests: XCTestCase {
     func testLogoutClearsTheCachedProfile() {
-        CurrentUserStore.shared.updateFromAuth(
+        let cache = TestCurrentUserCache()
+        let userStore = CurrentUserStore(cache: cache)
+        userStore.updateFromAuth(
             User(
                 id: UUID(),
                 name: "Тестовый пользователь",
@@ -16,12 +18,25 @@ final class LogoutUseCaseTests: XCTestCase {
         storage.save("refresh-token", for: "refresh_token")
         let appState = AppState(isLoading: false, isLoggedIn: true)
 
-        LogoutUseCase(secureStorage: storage, appState: appState).execute()
+        LogoutUseCase(
+            secureStorage: storage,
+            appState: appState,
+            currentUserStore: userStore
+        ).execute()
 
-        XCTAssertNil(CurrentUserStore.shared.user)
+        XCTAssertNil(userStore.user)
+        XCTAssertNil(cache.load())
         XCTAssertNil(storage.get("refresh_token"))
         XCTAssertFalse(appState.isLoggedIn)
     }
+}
+
+private final class TestCurrentUserCache: CurrentUserCaching {
+    private var value: CurrentUserData?
+
+    func load() -> CurrentUserData? { value }
+    func save(_ value: CurrentUserData) { self.value = value }
+    func clear() { value = nil }
 }
 
 private final class InMemorySecureStorage: SecureStorage {

@@ -89,28 +89,47 @@ struct SplitAppApp: App {
         guard storage.get("refresh_token") != nil else {
             TokenStore.shared.clear()
             await MainActor.run {
+                CurrentUserStore.shared.clear()
                 appState.isLoggedIn = false
                 appState.isLoading = false
             }
             return
         }
 
-        do {
-            try await APIClient.shared.refreshAccessTokenIfNeeded()
+        let restoredUser = await MainActor.run {
+            CurrentUserStore.shared.restoreCachedUser()
+        }
+        let result = await BootstrapAuthUseCase(storage: storage).execute()
+
+        switch result {
+        case .authenticated:
+            if restoredUser == nil {
+                do {
             let currentUserDTO: UserDTO = try await APIClient.shared.request(
                 endpoint: CurrentUserEndpoint()
             )
+                    await MainActor.run {
+                        CurrentUserStore.shared.updateFromAuth(
+                            UserMapper.mapToDomain(dto: currentUserDTO)
+                        )
+                    }
+                } catch {
+                    storage.delete("refresh_token")
+                    TokenStore.shared.clear()
+                    await MainActor.run {
+                        CurrentUserStore.shared.clear()
+                        appState.isLoggedIn = false
+                        appState.isLoading = false
+                    }
+                    return
+                }
+            }
             await MainActor.run {
-                CurrentUserStore.shared.updateFromAuth(
-                    UserMapper.mapToDomain(dto: currentUserDTO)
-                )
                 appState.isLoggedIn = true
                 appState.isLoading = false
             }
-        } catch {
-            print("Не удалось обновить токен: \(error)")
-            storage.delete("refresh_token")
-            TokenStore.shared.clear()
+
+        case .unauthenticated:
             await MainActor.run {
                 CurrentUserStore.shared.clear()
                 appState.isLoggedIn = false
