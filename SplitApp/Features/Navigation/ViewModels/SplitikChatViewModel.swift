@@ -8,6 +8,13 @@ final class SplitikChatViewModel: ObservableObject {
         let id = UUID()
         let role: Role
         let text: String
+        let drafts: [SplitikDraftDTO]
+
+        init(role: Role, text: String, drafts: [SplitikDraftDTO] = []) {
+            self.role = role
+            self.text = text
+            self.drafts = drafts
+        }
     }
 
     @Published private(set) var messages: [Message] = []
@@ -35,12 +42,27 @@ final class SplitikChatViewModel: ObservableObject {
                 body: SplitikMessageRequest(message: trimmed, sessionId: sessionId)
             )
             sessionId = response.sessionId
-            messages.append(Message(role: .assistant, text: response.assistantMessage))
+            messages.append(Message(role: .assistant, text: response.assistantMessage, drafts: response.drafts))
         } catch {
             errorMessage = UserFacingErrorMapper.message(
                 for: error,
                 fallback: "Не удалось получить ответ Сплитика. Попробуйте ещё раз."
             )
+        }
+    }
+
+    func confirm(_ draft: SplitikDraftDTO) async {
+        guard !isSending, draft.status == "pending" else { return }
+        isSending = true
+        defer { isSending = false }
+        do {
+            let _: SplitikDraftCommitResponse = try await apiClient.request(
+                endpoint: SplitikDraftCommitEndpoint(draftId: draft.id),
+                body: nil
+            )
+            messages.append(Message(role: .assistant, text: "План подтвержден. Событие и чеки созданы."))
+        } catch {
+            errorMessage = UserFacingErrorMapper.message(for: error, fallback: "Не удалось подтвердить план.")
         }
     }
 }

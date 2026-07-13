@@ -30,11 +30,20 @@ struct SplitikChatView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
                         ForEach(viewModel.messages) { message in
-                            Text(message.text)
-                                .padding(12)
-                                .foregroundStyle(message.role == .user ? .white : AppTheme.textPrimary)
-                                .background(message.role == .user ? AppTheme.accent : .white, in: RoundedRectangle(cornerRadius: 16))
-                                .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(message.text)
+                                    .padding(12)
+                                    .foregroundStyle(message.role == .user ? .white : AppTheme.textPrimary)
+                                    .background(message.role == .user ? AppTheme.accent : .white, in: RoundedRectangle(cornerRadius: 16))
+                                    .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+                                ForEach(message.drafts) { draft in
+                                    if let plan = draft.eventPlan {
+                                        SplitikEventPlanCard(draft: draft, plan: plan) {
+                                            Task { await viewModel.confirm(draft) }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     .padding(16)
@@ -113,6 +122,51 @@ struct SplitikChatView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+    }
+}
+
+private struct SplitikEventPlanCard: View {
+    let draft: SplitikDraftDTO
+    let plan: SplitikEventPlanDTO
+    let onConfirm: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label("План создания", systemImage: "sparkles")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.accent)
+                Spacer()
+                Text("Черновик")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+            Text(plan.name).font(.title3.weight(.bold)).foregroundStyle(AppTheme.textPrimary)
+            Label("Участников: \(plan.participantIds.count + 1)", systemImage: "person.2.fill")
+                .font(.subheadline.weight(.medium)).foregroundStyle(AppTheme.textSecondary)
+            ForEach(Array(plan.receipts.enumerated()), id: \.offset) { _, receipt in
+                HStack {
+                    Label(receipt.title, systemImage: "receipt")
+                    Spacer()
+                    Text(money(receipt.amountKopecks)).fontWeight(.bold)
+                }
+                .font(.subheadline).foregroundStyle(AppTheme.textPrimary)
+            }
+            Button(action: onConfirm) {
+                Label("Подтвердить план", systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.accent)
+            .accessibilityIdentifier("splitik-event-plan-confirm")
+        }
+        .padding(16)
+        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 22))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(AppTheme.accent.opacity(0.18), lineWidth: 1))
+    }
+
+    private func money(_ kopecks: Int) -> String {
+        String(format: "%.0f ₽", Double(kopecks) / 100)
     }
 }
 

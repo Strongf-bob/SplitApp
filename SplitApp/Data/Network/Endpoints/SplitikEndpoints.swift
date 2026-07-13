@@ -9,3 +9,9 @@ struct SplitikMessageEndpoint: Endpoint {
         ["Idempotency-Key": idempotencyKey]
     }
 }
+
+struct SplitikDraftCommitEndpoint: Endpoint {
+    let draftId: UUID
+    var path: String { "/api/splitik/drafts/\(draftId.uuidString)/commit" }
+    let method: HTTPMethod = .POST
+}
