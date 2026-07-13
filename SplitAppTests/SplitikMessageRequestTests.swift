@@ -39,4 +39,10 @@ final class SplitikMessageRequestTests: XCTestCase {
         XCTAssertEqual(response.drafts.first?.eventPlan?.name, "Поездка в такси")
         XCTAssertEqual(response.drafts.first?.eventPlan?.receipts.first?.amountKopecks, 20000)
     }
+
+    func testRendersAssistantMarkdownWithoutSyntaxMarkers() {
+        let rendered = SplitikMarkdownRenderer.render("**Итого**\\n\\n- Такси")
+
+        XCTAssertEqual(String(rendered.characters), "Итого\\n\\n- Такси")
+    }
 }
