@@ -67,6 +67,9 @@ struct SplitikChatView: View {
                 .padding(16)
         }
         .background(AppTheme.contentSurface.ignoresSafeArea())
+        .task {
+            await viewModel.loadHistory()
+        }
     }
 
     @ViewBuilder

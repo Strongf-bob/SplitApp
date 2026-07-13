@@ -26,6 +26,28 @@ struct SplitikMessageResponse: Decodable {
     }
 }
 
+struct SplitikSessionDTO: Decodable {
+    let id: UUID
+    let mode: String
+    let messages: [SplitikSessionMessageDTO]
+
+    enum CodingKeys: String, CodingKey {
+        case id, mode, messages
+    }
+}
+
+struct SplitikSessionMessageDTO: Decodable {
+    let id: UUID
+    let userMessage: String
+    let assistantMessage: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userMessage = "user_message"
+        case assistantMessage = "assistant_message"
+    }
+}
+
 struct SplitikDraftDTO: Decodable, Identifiable {
     let id: UUID
     let type: String
