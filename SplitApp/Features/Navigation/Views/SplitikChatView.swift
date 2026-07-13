@@ -31,7 +31,7 @@ struct SplitikChatView: View {
                     LazyVStack(alignment: .leading, spacing: 12) {
                         ForEach(viewModel.messages) { message in
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(message.text)
+                                messageText(for: message)
                                     .padding(12)
                                     .foregroundStyle(message.role == .user ? .white : AppTheme.textPrimary)
                                     .background(message.role == .user ? AppTheme.accent : .white, in: RoundedRectangle(cornerRadius: 16))
@@ -67,6 +67,15 @@ struct SplitikChatView: View {
                 .padding(16)
         }
         .background(AppTheme.contentSurface.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func messageText(for message: SplitikChatViewModel.Message) -> some View {
+        if message.role == .assistant {
+            SplitikMarkdownText(markdown: message.text)
+        } else {
+            Text(message.text)
+        }
     }
 
     private var header: some View {
@@ -122,6 +131,21 @@ struct SplitikChatView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+    }
+}
+
+enum SplitikMarkdownRenderer {
+    static func render(_ markdown: String) -> AttributedString {
+        (try? AttributedString(markdown: markdown)) ?? AttributedString(markdown)
+    }
+}
+
+private struct SplitikMarkdownText: View {
+    let markdown: String
+
+    var body: some View {
+        Text(SplitikMarkdownRenderer.render(markdown))
+            .textSelection(.enabled)
     }
 }
 
