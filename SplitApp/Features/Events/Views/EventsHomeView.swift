@@ -8,6 +8,7 @@ struct EventsHomeView: View {
     let onBillTap: ((UUID) -> Void)?
     let onEventTap: () -> Void
     let onInboxTap: () -> Void
+    var showsNavigationBar = false
 
     var body: some View {
         ZStack {
@@ -21,7 +22,8 @@ struct EventsHomeView: View {
         }
         .animation(.spring(response: 0.5, dampingFraction: 0.75), value: viewModel.currentEvent)
         .animation(.spring(response: 0.5, dampingFraction: 0.75), value: viewModel.currentEventBills.count)
-        .navigationBarHidden(true)
+        .navigationTitle("Событие")
+        .navigationBarHidden(!showsNavigationBar)
     }
 
     private var hero: some View {

@@ -45,4 +45,30 @@ final class SplitikMessageRequestTests: XCTestCase {
 
         XCTAssertEqual(String(rendered.characters), "Итого\\n\\n- Такси")
     }
+
+    func testDecodesServerBackedSplitikConversation() throws {
+        let data = Data("""
+        {
+          "id": "11111111-1111-1111-1111-111111111111",
+          "owner_user_id": "user-a",
+          "mode": "general",
+          "locale": "ru-RU",
+          "timezone": "Europe/Moscow",
+          "messages": [{
+            "id": "22222222-2222-2222-2222-222222222222",
+            "user_message": "Привет",
+            "assistant_message": "Здравствуйте!",
+            "mode": "general",
+            "created_at": "2026-07-13T10:00:00Z"
+          }],
+          "created_at": "2026-07-13T10:00:00Z",
+          "updated_at": "2026-07-13T10:00:00Z"
+        }
+        """.utf8)
+
+        let session = try JSONDecoder().decode(SplitikSessionDTO.self, from: data)
+
+        XCTAssertEqual(session.messages.first?.userMessage, "Привет")
+        XCTAssertEqual(session.messages.first?.assistantMessage, "Здравствуйте!")
+    }
 }

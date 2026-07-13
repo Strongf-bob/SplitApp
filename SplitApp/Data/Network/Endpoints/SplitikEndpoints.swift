@@ -15,3 +15,8 @@ struct SplitikDraftCommitEndpoint: Endpoint {
     var path: String { "/api/splitik/drafts/\(draftId.uuidString)/commit" }
     let method: HTTPMethod = .POST
 }
+
+struct CurrentSplitikSessionEndpoint: Endpoint {
+    let path = "/api/splitik/sessions/current"
+    let method: HTTPMethod = .GET
+}

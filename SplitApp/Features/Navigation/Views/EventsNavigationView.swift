@@ -37,7 +37,10 @@ struct EventsNavigationView: View {
         NavigationStack(path: $viewModel.path) {
             Group {
                 if showsCatalog {
-                    EventsCatalogView(viewModel: viewModel.homeViewModel)
+                    EventsCatalogView(
+                        viewModel: viewModel.homeViewModel,
+                        onEventTap: { viewModel.handle(.eventSelected($0)) }
+                    )
                 } else {
                     EventsHomeView(
                         viewModel: viewModel.homeViewModel,
@@ -83,6 +86,21 @@ struct EventsNavigationView: View {
 
                 case .eventPicker:
                     EventPickerView(viewModel: viewModel.homeViewModel)
+                case .eventDetails:
+                    EventsHomeView(
+                        viewModel: viewModel.homeViewModel,
+                        onScanTap: { viewModel.handle(.scanButtonTapped) },
+                        onAddTap: { viewModel.handle(.addButtonTapped) },
+                        onBillTap: { billId in
+                            guard let eventId = viewModel.homeViewModel.currentEvent?.id else {
+                                return
+                            }
+                            viewModel.handle(.receiptTapped(eventId: eventId, receiptId: billId))
+                        },
+                        onEventTap: { viewModel.handle(.currentEventTapped) },
+                        onInboxTap: { viewModel.handle(.inboxTapped) },
+                        showsNavigationBar: true
+                    )
                 case .inbox:
                     InboxView()
                 }

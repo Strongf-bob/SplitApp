@@ -47,6 +47,9 @@ final class EventsNavigationViewModel: ObservableObject {
 
     func handle(_ action: EventsNavigationAction) {
         switch action {
+        case let .eventSelected(event):
+            homeViewModel.selectEvent(event)
+            path.append(.eventDetails)
         case .addButtonTapped:
             guard homeViewModel.canMutateCurrentEventReceipts else { return }
             billEntryDestination = .create(eventId: homeViewModel.currentEvent?.id)
@@ -83,6 +86,8 @@ final class EventsNavigationViewModel: ObservableObject {
             path.append(.scanner)
         case .eventPicker:
             path.append(.eventPicker)
+        case .eventDetails:
+            path.append(.eventDetails)
         case .inbox:
             path.append(.inbox)
         }

@@ -28,6 +28,31 @@ final class SplitikChatViewModel: ObservableObject {
         self.apiClient = apiClient ?? .shared
     }
 
+    func loadHistory() async {
+        guard !isSending else { return }
+
+        do {
+            let session: SplitikSessionDTO = try await apiClient.request(
+                endpoint: CurrentSplitikSessionEndpoint()
+            )
+            sessionId = session.id
+            messages = session.messages.flatMap { message in
+                [
+                    Message(role: .user, text: message.userMessage),
+                    Message(role: .assistant, text: message.assistantMessage),
+                ]
+            }
+        } catch let NetworkError.httpError(statusCode: 404, _) {
+            sessionId = nil
+            messages = []
+        } catch {
+            errorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось загрузить историю Сплитика."
+            )
+        }
+    }
+
     func send(_ text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isSending else { return }

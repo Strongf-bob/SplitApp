@@ -10,6 +10,7 @@ struct EventsCatalogView: View {
     }
 
     @ObservedObject var viewModel: EventsHomeViewModel
+    let onEventTap: (EventListItem) -> Void
     @State private var filter: Filter = .active
 
     var body: some View {
@@ -43,7 +44,7 @@ struct EventsCatalogView: View {
                             } else {
                                 ForEach(filteredEvents) { event in
                                     Button {
-                                        viewModel.selectEvent(event)
+                                        onEventTap(event)
                                     } label: {
                                         VStack(alignment: .leading, spacing: 6) {
                                             Text(event.title)
