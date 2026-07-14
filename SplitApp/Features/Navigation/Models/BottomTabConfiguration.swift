@@ -78,6 +78,7 @@ extension BottomTabConfiguration {
                 ) {
                     FriendsView(
                         friendsRepository: dependencies.friendsRepository,
+                        usersRepository: dependencies.usersRepository,
                         balancesRepository: dependencies.balancesRepository,
                         paymentsRepository: dependencies.paymentsRepository,
                         activeEventRepository: dependencies.activeEventRepository,

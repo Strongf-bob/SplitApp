@@ -6,6 +6,7 @@ struct FriendsView: View {
 
     init(
         friendsRepository: any FriendsRepository,
+        usersRepository: any UsersRepository,
         balancesRepository: any BalancesRepository,
         paymentsRepository: any PaymentsRepository,
         activeEventRepository: any ActiveEventRepository,
@@ -14,6 +15,7 @@ struct FriendsView: View {
         _viewModel = StateObject(
             wrappedValue: FriendsViewModel(
                 friendsRepository: friendsRepository,
+                usersRepository: usersRepository,
                 balancesRepository: balancesRepository,
                 paymentsRepository: paymentsRepository,
                 activeEventRepository: activeEventRepository
@@ -102,6 +104,7 @@ private extension FriendsView {
         ScrollView {
             VStack(spacing: 24) {
                 activeDebtsSection
+                requestsSection
                 allFriendsSection
                 loadingState
                 errorState
@@ -140,6 +143,20 @@ private extension FriendsView {
         }
     }
 
+    var requestsSection: some View {
+        FriendRequestsSection(
+            incoming: viewModel.incomingRequests,
+            outgoing: viewModel.outgoingRequests,
+            updatingIDs: viewModel.updatingFriendshipIds,
+            onAccept: { friendship in
+                Task { await viewModel.accept(friendship) }
+            },
+            onReject: { friendship in
+                Task { await viewModel.reject(friendship) }
+            }
+        )
+    }
+
     @ViewBuilder
     var allFriendsSection: some View {
         if !viewModel.filteredFriends.isEmpty {
@@ -147,6 +164,12 @@ private extension FriendsView {
                 friends: viewModel.filteredFriends,
                 startIndex: viewModel.activeDebts.count
             )
+        } else if !viewModel.isLoading, viewModel.searchText.isEmpty {
+            Text("Подтверждённые друзья появятся здесь.")
+                .font(.system(size: 15, weight: .regular, design: .rounded))
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
         }
     }
 
@@ -192,9 +215,8 @@ private extension FriendsView {
 #Preview {
     NavigationStack {
         FriendsView(
-            friendsRepository: FriendsDataRepository(
-                usersRepository: UsersDataRepository()
-            ),
+            friendsRepository: FriendsDataRepository(),
+            usersRepository: UsersDataRepository(),
             balancesRepository: BalancesDataRepository(),
             paymentsRepository: PaymentsDataRepository(),
             activeEventRepository: ActiveEventSelectionDataRepository(),
