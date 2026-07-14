@@ -2,53 +2,29 @@
 
 ## Требования
 
-- macOS с Xcode.
-- iOS Simulator или физическое устройство.
-- Доступ к repository [Strongf-bob/SplitApp](https://github.com/Strongf-bob/SplitApp).
-- Доступный backend API. По умолчанию frontend обращается к серверу `http://46.243.201.8:8080`.
-- Для полной локальной разработки рядом нужен backend repository [Strongf-bob/SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend).
+| Что | Зачем |
+| --- | --- |
+| macOS и Xcode | сборка SwiftUI-приложения и Simulator |
+| iOS Simulator или устройство | запуск UI и проверка OAuth callback |
+| Доступ к backend | реальные сценарии требуют API по base URL из [APIConfiguration](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIConfiguration.swift) |
+| Yandex OAuth configuration | вход через SDK; значения определены в [YandexOAuthConfiguration](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/YandexOAuthConfiguration.swift) |
 
-## Запуск iOS-приложения
+## Запуск
 
-1. Открыть [SplitApp.xcodeproj](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp.xcodeproj) в Xcode.
-2. Выбрать scheme `SplitApp`.
-3. Выбрать iOS Simulator.
-4. Запустить `Run`.
+1. Откройте [`SplitApp.xcodeproj`](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp.xcodeproj) в Xcode.
+2. Выберите scheme `SplitApp` и доступный simulator/устройство.
+3. Соберите и запустите приложение (`Cmd+R`).
+4. Для запуска тестов используйте scheme тестов или `Cmd+U`.
 
-## Backend для разработки
+Для backend-разработки работайте рядом с [SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend): локальный запуск, env и миграционные сведения есть в [backend Local Setup](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/Local-Setup.md). Не меняйте base URL в произвольном feature-файле — единственная клиентская конфигурация находится в `APIConfiguration`.
 
-Backend запускается из репозитория [Strongf-bob/SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend). Инструкции находятся в:
+## Быстрая диагностика
 
-- [README backend](https://github.com/Strongf-bob/SplitAppBackend/blob/main/README.md)
-- [Backend Local Setup Wiki](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/Local-Setup.md)
+| Симптом | Проверить |
+| --- | --- |
+| Всегда виден login | refresh token/Keychain и [bootstrap](Authentication-And-Security) |
+| После входа нет данных | base URL, сеть, backend health и `APIClient` error |
+| Ошибка OAuth callback | bundle/configuration и логи `YandexLoginSDK` |
+| Экран показывает старые данные | состояние сети, repository fallback и Core Data |
 
-Коротко:
-
-```bash
-cd ../SplitAppBackend
-make setup
-cp .env.example .env
-make run-dev
-```
-
-Local backend URL по умолчанию:
-
-```text
-http://localhost:8000
-```
-
-## Backend base URL
-
-Сейчас base URL задан в [APIConfiguration.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIConfiguration.swift) как:
-
-```swift
-static let baseURL = URL(string: "http://46.243.201.8:8080")!
-```
-
-Так как текущий сервер доступен по HTTP и IP-адресу, в [Info.plist](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Info.plist) добавлено ATS-исключение для `46.243.201.8`. Для удобной локальной backend-разработки позже можно добавить environment-aware switch: production server, simulator local backend и, при необходимости, staging.
-
-## Где смотреть ошибки
-
-- Network errors нормализуются в [NetworkError.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/NetworkError.swift).
-- User-facing mapping находится в [UserFacingErrorMapper.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Shared/Errors/UserFacingErrorMapper.swift).
-- Decode failures дополнительно печатают тело ответа в [APIClient.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift), чтобы быстрее поймать рассинхрон DTO и backend schema.
+Дальше: [Тесты и качество](Testing-And-Quality).

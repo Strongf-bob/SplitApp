@@ -1,52 +1,43 @@
 # Локальные данные и синхронизация
 
-## Core Data
+Кэш нужен, чтобы экран открывался быстрее и приложение было полезно при кратком обрыве сети. Он не является финансовым источником правды: серверный ответ определяет итог событий, долей, балансов и платежей.
 
-Локальное хранение завязано на [CoreDataStore.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Database/CoreDataStore.swift) и модель [SplitApp.xcdatamodeld](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/SplitApp.xcdatamodeld).
+## Где находятся данные
 
-Core Data используется как cache для данных, которые приходят из backend:
+| Данные | Локальный механизм | Когда обновляется | Поведение без сети |
+| --- | --- | --- | --- |
+| События | Core Data | после успешной загрузки/мутации | repository может вернуть кэш |
+| Чеки | Core Data + `LocalReceiptsStore` | после network success; есть fallback | список/редактирование используют локальные данные по правилам repository |
+| Платежи | Core Data | после list/create/update | при пустом кэше бросается `offlineNoCache` |
+| Текущий пользователь | `CurrentUserStore` | login/bootstrap/profile | не авторизует сам по себе |
 
-- events;
-- receipts;
-- users;
-- payments.
+Источники: [CoreDataStore](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Database/CoreDataStore.swift), [EventsDataRepository](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/EventsRepository.swift), [ReceiptsDataRepository](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/ReceiptsRepository.swift), [PaymentsDataRepository](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/PaymentsRepository.swift).
 
-## Repositories
+## Модель обновления
 
-| Repository | Файл | Назначение |
-| --- | --- | --- |
-| Events | [EventsRepository.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/EventsRepository.swift) | События и event lifecycle. |
-| Receipts | [ReceiptsRepository.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/ReceiptsRepository.swift) | Чеки, позиции, изображения. |
-| Users | [UsersRepository.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/UsersRepository.swift) | Пользователи, видимые текущему actor. |
-| Friends | [FriendsDataRepository.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/FriendsDataRepository.swift) | Friend-facing представление поверх backend users/balances. |
-| Balances | [BalancesDataRepository.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/BalancesDataRepository.swift) | Backend-calculated debts. |
-| Payments | [PaymentsRepository.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/PaymentsRepository.swift) | Payment declarations and confirmation state. |
-| Active event | [ActiveEventSelectionDataRepository.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/ActiveEventSelectionDataRepository.swift) | Выбранное активное событие. |
+```mermaid
+flowchart LR
+    A["Экран запрашивает данные"] --> B{"Сеть доступна?"}
+    B -->|"да"| C["API → DTO → Core Data"]
+    C --> D["Показать domain model"]
+    B -->|"нет или network error"| E["Прочитать допустимый кэш"]
+    E --> F{"Есть данные?"}
+    F -->|"да"| D
+    F -->|"нет"| G["Показать понятную ошибку"]
+    style A fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style B fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style C fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style D fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style E fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style F fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style G fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+```
 
-## DTO и mapping
+## Важные ограничения
 
-DTO отражают backend JSON shape и находятся в [SplitApp/Data/DTOs](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/DTOs). Domain models находятся в [SplitApp/Domain/Models](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Domain/Models).
+- Создание/редактирование чека в UI запрещается без сети; это отдельное правило [BillViewModel](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Features/BillEntry/ViewModels/BillViewModel.swift), даже при наличии кэша.
+- `ReceiptsDataRepository` реализует local fallback для connectivity ошибок. Не расширяйте это правило на ошибки валидации, прав или бизнес-правил: они должны быть показаны пользователю.
+- При создании чека изображение загружается после основного объекта; failure загрузки изображения не отменяет созданный чек. См. [путь создания чека](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/ReceiptsRepository.swift).
+- Core Data операции выполняются через [performBackground](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Database/CoreDataStore.swift), а UI-state остаётся на `MainActor`.
 
-Mapping DTO -> domain вынесен в [SplitApp/Data/Mappers](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/Mappers). Это позволяет не протаскивать backend-specific поля прямо в UI.
-
-## Money values
-
-Backend должен отдавать денежные значения в decimal-safe формате. Frontend DTO decode поддерживает числа и decimal strings через [LosslessDoubleDecoding.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Shared/Decoding/LosslessDoubleDecoding.swift).
-
-Текущий технический долг: часть domain/UI моделей все еще использует `Double`. Более надежный вариант - перейти на `Decimal` или minor-unit `Int` end to end. Этот пункт зафиксирован в [FRONTEND_BACKEND_TODO.md](https://github.com/Strongf-bob/SplitApp/blob/main/FRONTEND_BACKEND_TODO.md).
-
-## Receipt images
-
-Правило: сохраненный `image_url` не должен считаться permanent public URL. Для просмотра private images frontend должен получать временный URL через backend:
-
-- endpoint: `GET /api/receipts/{id}/image/presigned-url`;
-- frontend endpoint: `ReceiptImagePresignedURLEndpoint`;
-- backend reference: [API Reference / Receipts](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/API-Reference.md#receipts).
-
-## Offline и cache expectations
-
-- Local cache может улучшать UX, но не заменяет backend.
-- При сетевых ошибках UI должен показывать понятные сообщения.
-- При восстановлении сети repository/view model layer должен подтягивать свежие данные.
-- Если local cache конфликтует с backend, backend побеждает.
-
+Дальше: [Доменные сценарии](Domain-Flows) и [Архитектура iOS](iOS-Architecture).

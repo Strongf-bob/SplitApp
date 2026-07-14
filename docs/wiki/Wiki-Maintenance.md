@@ -1,35 +1,32 @@
 # Поддержка Wiki
 
-## Где лежит Wiki
+## Единственный источник
 
-Frontend Wiki source хранится в [docs/wiki](https://github.com/Strongf-bob/SplitApp/tree/main/docs/wiki).
-
-Backend Wiki source хранится в [SplitAppBackend/docs/wiki](https://github.com/Strongf-bob/SplitAppBackend/tree/main/docs/wiki).
+Версионируемый источник — [`docs/wiki/`](https://github.com/Strongf-bob/SplitApp/tree/main/docs/wiki). GitHub Wiki — опубликованное зеркало: [SplitApp Wiki](https://github.com/Strongf-bob/SplitApp/wiki). Не редактируйте опубликованную Wiki так, чтобы эти две версии расходились.
 
 ## Когда обновлять
 
-Обновляйте Wiki в том же изменении, если меняется:
+Wiki обновляется в том же изменении, если меняется:
 
-- API endpoint, request или response;
-- auth flow;
-- token storage;
-- Core Data model или repository behavior;
-- event/receipt/payment business flow;
-- local setup;
-- testing or CI workflow;
-- ссылка на важный GitHub-файл или внешний контракт.
+- пользовательский сценарий, экран или доступное действие;
+- endpoint, DTO, mapper, repository или auth flow;
+- local-cache/offline поведение;
+- base URL, OAuth настройка, тестовый или release workflow;
+- backend capability, на которую ссылается iOS.
 
-## Как писать
+## Правила написания
 
-- Писать по-русски.
-- Ссылаться на GitHub-файлы через постоянные repository URLs.
-- Не дублировать весь backend OpenAPI; ссылаться на [openapi.yaml](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml).
-- Для frontend/backend связки давать ссылки на оба репозитория.
-- Если есть технический долг, ссылаться на [FRONTEND_BACKEND_TODO.md](https://github.com/Strongf-bob/SplitApp/blob/main/FRONTEND_BACKEND_TODO.md), а не прятать проблему в тексте.
+- Пишите по-русски; команды, identifiers и имена API оставляйте как в коде.
+- Ссылайтесь на конкретные файлы iOS и на [backend OpenAPI](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml).
+- Разделяйте «реализовано в iOS» и «есть в backend-контракте».
+- Используйте Wiki-ссылки без расширения: `[Архитектура](iOS-Architecture)`.
+- Не добавляйте YAML frontmatter: GitHub Wiki показывает его как обычный текст.
 
-## Синхронизация с GitHub Wiki
+## Публикация
 
-Эти Markdown-файлы можно вручную или скриптом зеркалировать в GitHub Wiki. Для GitHub Wiki обычно нужны имена страниц без `.md` в ссылках, например `Project-Overview`, а для repository source удобнее использовать обычные относительные ссылки `Project-Overview.md`.
+1. Проверьте локальные Markdown-ссылки и Mermaid-блоки.
+2. Скопируйте только `docs/wiki/*.md` в чистый clone `https://github.com/Strongf-bob/SplitApp.wiki.git`.
+3. Проверьте `git diff`, создайте осмысленный commit в Wiki-репозитории и push в `master`/default branch Wiki.
+4. Откройте [Home](https://github.com/Strongf-bob/SplitApp/wiki/Home) и несколько связанных страниц в браузере.
 
-Если включена отдельная GitHub Wiki repository, source pages должны оставаться в `docs/wiki`, чтобы изменения проходили code review и не терялись при force-push или ручном редактировании Wiki.
-
+При публикации не переносите `README.md`, планы `docs/superpowers` и локальные инструменты: Wiki должна состоять только из читательских страниц.

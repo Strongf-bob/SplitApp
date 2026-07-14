@@ -1,61 +1,38 @@
 # Авторизация и безопасность
 
-## Общая схема
+Вход состоит из двух разных доверенных границ: Yandex Login подтверждает личность пользователя, затем backend выдаёт сессию SplitApp. iOS не хранит refresh token в `UserDefaults`; для него используется [KeychainStorage](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/KeychainStorage.swift).
 
-1. Пользователь проходит Yandex OAuth в iOS-приложении.
-2. iOS получает Yandex token через Yandex Login SDK.
-3. Frontend отправляет token на backend endpoint `POST /api/login`.
-4. Backend возвращает app access token и refresh token.
-5. Access token используется в `Authorization: Bearer <access_token>`.
-6. Refresh token хранится в Keychain и используется для `POST /api/refresh`.
+## Жизненный цикл сессии
 
-Связанные файлы:
+```mermaid
+stateDiagram-v2
+    [*] --> LoggedOut
+    LoggedOut --> YandexLogin: пользователь нажал вход
+    YandexLogin --> SessionReady: backend обменял token
+    SessionReady --> Authenticated: access token действителен
+    Authenticated --> SessionReady: APIClient refresh
+    SessionReady --> LoggedOut: refresh не удался
+    Authenticated --> LoggedOut: logout
+```
 
-- App bootstrap: [SplitAppApp.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/App/SplitAppApp.swift)
-- Auth ViewModel: [AuthViewModel.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Features/Authorization/ViewModels/AuthViewModel.swift)
-- Backend auth service: [AuthServiceBackend.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/AuthServiceBackend.swift)
-- Token state: [TokenStore.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/TokenStore.swift)
-- Secure storage: [KeychainStorage.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/KeychainStorage.swift)
-- Yandex provider: [YandexAuthProviderImpl.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/Provider/YandexAuthProviderImpl.swift)
+Источники: [YandexAuthProviderImpl](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/Provider/YandexAuthProviderImpl.swift), [AuthServicesImpl](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Features/Authorization/Services/AuthServicesImpl.swift), [BootstrapAuthUseCase](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Features/Authorization/Services/BootstrapAuthUseCase.swift), [LogoutUseCase](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Features/Authorization/Services/LogoutUseCase.swift).
 
-## Token storage
+## Где что хранится
 
-- Access token живет в runtime state через `TokenStore`.
-- Refresh token хранится в Keychain.
-- При неуспешном bootstrap refresh token удаляется, `TokenStore` очищается, пользователь возвращается на login screen.
-- Refresh token нельзя переносить в UserDefaults, логи, analytics или crash reports.
+| Данные | Место | Назначение | Нельзя считать |
+| --- | --- | --- | --- |
+| Access token | memory `TokenStore` | заголовок запросов и короткий срок жизни | долговременной сессией |
+| Refresh token | Keychain | восстановление сессии после запуска | UI-флагом входа |
+| Current user | `CurrentUserStore` и кэш | быстрый старт профиля | доказательством валидной сессии |
+| Права на действие | backend | доступ к событиям, платежам и данным | ответственностью UI |
 
-## Поведение APIClient
+При старте [SplitAppApp](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/App/SplitAppApp.swift) проверяет refresh token, восстанавливает кэш пользователя и выполняет `BootstrapAuthUseCase`. При неудаче очищаются refresh token, `TokenStore` и профильный кэш, после чего показывается login.
 
-[APIClient.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift):
+## Правила для разработчика
 
-- добавляет Bearer token для protected endpoints;
-- перед запросом может обновить access token, если он отсутствует или истек;
-- на `401` делает один refresh и повторяет исходный request;
-- не должен бесконечно retry-ить unauthorized requests;
-- public endpoints: `POST /api/login`, `POST /api/refresh`.
+- Не добавляйте токены, client secret, receipt image URL с подписью или персональные данные в логи.
+- Каждый новый защищённый endpoint проверяйте на `401`, `403` и user-facing сообщение через [UserFacingErrorMapper](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Shared/Errors/UserFacingErrorMapper.swift).
+- `APIClient` — единственное место, где должно формироваться Bearer-авторизация и refresh/retry. См. [APIClient](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift).
+- Ограничения прав описывает backend: [Authentication and Security](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/Authentication-And-Security.md).
 
-## Authorization rules
-
-Frontend может скрывать недоступные actions для UX, но backend остается источником правды:
-
-- event membership проверяется backend-ом;
-- creator-only действия проверяются backend-ом;
-- closed event financial mutations блокируются backend-ом;
-- payment confirmation restricted to receiver на backend-стороне;
-- client-supplied user IDs не дают прав сами по себе.
-
-Backend security reference:
-
-- [Backend Authentication And Security Wiki](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/Authentication-And-Security.md)
-- [Backend security baseline](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/security-baseline.md)
-
-## Client-side правила
-
-- Не логировать access token, refresh token, Yandex token и персональные данные.
-- Не хранить секреты в репозитории.
-- Не доверять local cache при принятии security decisions.
-- При `403` показывать ошибку доступа, а не делать refresh/retry.
-- При `401` сделать один refresh и один retry.
-- При logout очищать token state и локальный current-user state.
-
+Дальше: [Интеграция с backend](Backend-Integration) и [Тесты](Testing-And-Quality).

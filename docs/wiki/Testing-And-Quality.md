@@ -1,52 +1,34 @@
-# Тесты и проверки
+# Тесты и качество
 
-## Что запускать перед merge
+Проверки должны подтверждать не только сборку, но и совместимость с backend и безопасность пользовательского сценария. Тесты находятся в [`SplitAppTests`](https://github.com/Strongf-bob/SplitApp/tree/main/SplitAppTests); исходная точка CI — проект Xcode.
 
-Минимальный набор:
+## Перед merge или релизом
 
-- открыть проект в Xcode;
-- собрать scheme `SplitApp`;
-- запустить unit tests, если доступны в текущей Xcode-конфигурации;
-- вручную проверить login/bootstrap, events list, receipt flow и friends/debts после backend-facing изменений.
+| Проверка | Что даёт |
+| --- | --- |
+| `Cmd+U` в Xcode или `xcodebuild test` для scheme | unit tests приложения |
+| Сборка `SplitApp` на целевом simulator | компиляция и ресурсная целостность |
+| Ручной auth smoke | login → restart → logout |
+| Ручной receipt smoke | создать чек, проверить ошибку image upload и повторный вход в экран |
+| Сверка с OpenAPI | endpoint/method/request/response совпадают с [контрактом](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) |
+| `git diff --check` | нет whitespace-ошибок в документации и коде |
 
-## Текущие tests
+## Набор критичных тестов
 
-В репозитории есть [SplitAppTests/EmojiLogicTests.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/EmojiLogicTests.swift).
+| Риск | Тесты | Что защищают |
+| --- | --- | --- |
+| Сессия | [BootstrapAuthUseCaseTests](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/BootstrapAuthUseCaseTests.swift), [LogoutUseCaseTests](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/LogoutUseCaseTests.swift) | refresh и очистку после ошибки |
+| Конфигурация | [APIConfigurationTests](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/APIConfigurationTests.swift), [YandexOAuthConfigurationTests](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/YandexOAuthConfigurationTests.swift) | корректные runtime settings |
+| Чеки | [EventsHomeViewModelTests](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/EventsHomeViewModelTests.swift) и [ReceiptsDataRepository](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/ReceiptsRepository.swift) | загрузка событий и путь сохранения чека |
+| Навигация | [EventsNavigationTests](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/EventsNavigationTests.swift), [BottomTabPresentationTests](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/BottomTabPresentationTests.swift) | доступные маршруты и tab state |
+| Контракт DTO | [EventDTOContractTests](https://github.com/Strongf-bob/SplitApp/blob/main/SplitAppTests/EventDTOContractTests.swift) | decode и mapping |
 
-При расширении тестового покрытия приоритеты такие:
+## Definition of Done для backend-facing изменения
 
-- DTO decoding для backend responses;
-- mappers DTO -> domain;
-- ViewModel behavior для events, receipts, friends и payments;
-- error mapping;
-- auth bootstrap/logout behavior;
-- money parsing edge cases.
+- Endpoint struct, DTO и mapper соответствуют актуальному OpenAPI.
+- Repository не маскирует `401`, `403`, validation и business errors как offline fallback.
+- View показывает понятный результат: loaded, cached, empty или error.
+- Если меняется интеграционный маршрут, обновлены эта Wiki и соответствующая backend Wiki страница.
+- Никакие токены и signed URL не попадают в test output или release logs.
 
-## Backend compatibility checks
-
-Для изменений API нужно свериться с backend:
-
-- [openapi.yaml](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml)
-- [Backend API Reference](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/API-Reference.md)
-- [Backend tests and CI](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/Testing-And-CI.md)
-
-## Рискованные зоны
-
-- Auth refresh/retry loop.
-- `403` vs `401` handling.
-- Closed event read-only state.
-- Creator-only event management.
-- Payment confirmation permissions.
-- Receipt image upload and presigned URL viewing.
-- Money rounding and string/number decode differences.
-- Core Data updates from background context.
-
-## Definition of Done для backend-facing frontend changes
-
-- Endpoint path/method совпадает с backend OpenAPI.
-- Request DTO и response DTO покрывают реальные поля backend.
-- Mapper не теряет обязательные поля.
-- User-facing errors понятны и не раскрывают внутренние детали.
-- UI не показывает actions, которые backend гарантированно отклонит.
-- Wiki и `FRONTEND_BACKEND_TODO.md` обновлены, если изменился контракт или workflow.
-
+Дальше: [Интеграция с backend](Backend-Integration), [Релиз](Operations-And-Release).

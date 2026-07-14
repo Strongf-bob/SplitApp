@@ -1,54 +1,45 @@
 # Архитектура iOS-приложения
 
-## Слои
+Клиент разделён так, чтобы SwiftUI-экран не знал ни URL, ни JSON-форму backend: UI вызывает view model, та использует domain contract или service, repository выполняет запрос и маппинг. Live-зависимости собираются в одном месте — [AppDependencies](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/App/AppDependencies.swift).
 
-| Слой | Папка | Ответственность |
+## Слои и зависимости
+
+| Слой | Ответственность | Примеры |
 | --- | --- | --- |
-| App | [SplitApp/App](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/App) | Entry point, dependency wiring, root view. |
-| Core | [SplitApp/Core](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Core) | Network, auth primitives, database, shared infrastructure. |
-| Domain | [SplitApp/Domain](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Domain) | Модели, repository contracts, command models. |
-| Data | [SplitApp/Data](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data) | DTO, mappers, repositories, endpoints, Core Data DTO mappers. |
-| Features | [SplitApp/Features](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features) | Экраны, view models и feature-specific models. |
-| Shared | [SplitApp/Shared](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Shared) | UI components, modifiers, theme, errors, decoding helpers. |
+| App | запуск, root state и сборка live dependencies | [App](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/App) |
+| Features | SwiftUI, view models, пользовательские состояния | [Features](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features) |
+| Domain | модели, команды и repository contracts | [Domain](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Domain) |
+| Data | endpoints, DTO, mapper-ы, repositories и Core Data адаптеры | [Data](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data) |
+| Core | сеть, авторизация, Keychain, Core Data и network reachability | [Core](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Core) |
 
-## Dependency wiring
+```mermaid
+flowchart TB
+    V["SwiftUI View"] --> VM["ViewModel / Service"]
+    VM --> R["Repository contract"]
+    R --> D["DTO + Mapper + Endpoint"]
+    D --> N["APIClient"]
+    D --> L["Core Data"]
+    N --> B["SplitAppBackend"]
+    style V fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style VM fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style R fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style D fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style N fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style L fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style B fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+```
 
-[AppDependencies.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/App/AppDependencies.swift) собирает live dependencies:
+Источники: [AppDependencies](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/App/AppDependencies.swift), [Endpoint](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/Endpoint.swift), [EventsRepository contract](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Domain/Repositories/EventsRepositoryContract.swift).
 
-- `APIClient.shared`
-- `CoreDataStore.shared`
-- `NetworkMonitor.shared`
-- repositories для events, receipts, users, balances, payments, active event и friends
-- `EventManagementService`
+## Навигация и composition root
 
-Эта точка важна для тестируемости: feature view models должны зависеть от contracts/repositories, а не создавать network/database объекты напрямую.
+`SplitAppApp` строит auth-сервисы и решает, показывать ли login или `ContentView`. `ContentView` создаёт tab configuration; для событий он передаёт repositories и `EventManagementService` в `EventsNavigationView`. Navigation view владеет маршрутом, создаёт `BillViewModel` для full-screen редактора чека и обновляет данные после закрытия редактора. См. [SplitAppApp](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/App/SplitAppApp.swift), [BottomTabConfiguration](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Features/Navigation/Models/BottomTabConfiguration.swift), [EventsNavigationView](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Features/Navigation/Views/EventsNavigationView.swift).
 
-## Feature-модули
+## Правила изменения кода
 
-| Feature | Папка | Назначение |
-| --- | --- | --- |
-| Authorization | [SplitApp/Features/Authorization](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features/Authorization) | Login, bootstrap, logout, app auth state. |
-| Navigation | [SplitApp/Features/Navigation](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features/Navigation) | Bottom tab bar, route/state для событий. |
-| Events | [SplitApp/Features/Events](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features/Events) | Home screen, event list, receipt list, balances and event actions. |
-| BillEntry | [SplitApp/Features/BillEntry](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features/BillEntry) | Создание и редактирование чеков. |
-| Friends | [SplitApp/Features/Friends](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features/Friends) | Список друзей и debts view. |
-| UserProfile | [SplitApp/Features/UserProfile](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features/UserProfile) | Экран профиля и profile view model. |
-| ReceiptScanner | [SplitApp/Features/ReceiptScanner](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features/ReceiptScanner) | Сканирование/парсинг чеков и изображения. |
-| EmojiFeature | [SplitApp/Features/EmojiFeature](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Features/EmojiFeature) | Emoji parsing and prediction helpers. |
+- Новый API-вызов: endpoint → DTO → mapper → repository contract/реализация → view model → view; сверить с [OpenAPI](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml).
+- Не создавайте `URLSession`, Keychain или repository в SwiftUI view.
+- Не передавайте backend DTO через feature UI, если уже есть domain model.
+- Dependencies инъецируйте в тестируемые init-параметры; `AppDependencies.live` — composition root, а не глобальное место бизнес-логики.
 
-## Поток данных
-
-1. View вызывает ViewModel action.
-2. ViewModel вызывает service или repository contract.
-3. Data repository вызывает `APIClient` и, если нужно, обновляет Core Data.
-4. DTO конвертируется mapper-ом в domain model.
-5. UI получает domain/view model state.
-
-## Правила разработки
-
-- Не держать backend-specific JSON shape во View.
-- Не вызывать `URLSession` напрямую из feature-кода; использовать `APIClient` через repository.
-- Не хранить refresh token в UserDefaults; только Keychain.
-- Не считать local cache источником authorization.
-- Новые endpoints добавлять в `SplitApp/Data/Network/Endpoints`, DTO - в `SplitApp/Data/DTOs`, mapping - в `SplitApp/Data/Mappers`.
-
+Дальше: [Авторизация](Authentication-And-Security), [Данные и синхронизация](Data-And-Sync) и [Онбординг](Onboarding).

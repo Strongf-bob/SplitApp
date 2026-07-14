@@ -1,74 +1,46 @@
 # Интеграция с backend API
 
-## Источник правды
+Backend-контракт — это [OpenAPI](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml). iOS-приложение обращается к нему через `APIClient` с базовым URL `https://split-app.ru`, заданным в [APIConfiguration](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIConfiguration.swift). Локальные Swift structs — адаптеры клиента, а не самостоятельный контракт.
 
-Главный backend-контракт: [SplitAppBackend/openapi.yaml](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml).
+## Карта реализованных клиентских вызовов
 
-Человекочитаемая backend Wiki:
+| Область | iOS endpoint | Backend-контракт | Клиентская реализация |
+| --- | --- | --- | --- |
+| События | `GET/POST /api/events`, `PATCH/DELETE /api/events/{id}` | [events](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) | [EventEndpoints](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
+| Участники | `POST/DELETE /api/events/{id}/participants` | [events](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) | [EventEndpoints](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
+| Чеки | `GET/POST /api/events/{id}/receipts`, `PATCH/DELETE /api/receipts/{id}` | [receipts](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) | [ReceiptEndpoints](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/ReceiptEndpoints.swift) |
+| Изображения | `POST /api/receipts/{id}/image`, presigned URL | [receipt image](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) | [ReceiptEndpoints](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/ReceiptEndpoints.swift) |
+| Балансы | `GET /api/events/{id}/balances` | [balances](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) | [BalanceEndpoints](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/BalanceEndpoints.swift) |
+| Платежи | `GET/POST /api/events/{id}/payments`, `PATCH /api/payments/{id}` | [payments](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) | [PaymentEndpoints](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/PaymentEndpoints.swift) |
+| Друзья | `GET /api/friends`, accept/reject/delete | [friends](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) | [FriendshipEndpoints](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/FriendshipEndpoints.swift) |
+| Сплитик | session, message, draft commit | [splitik](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) | [SplitikEndpoints](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/SplitikEndpoints.swift) |
 
-- [API Reference](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/API-Reference.md)
-- [iOS Frontend Integration](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/iOS-Frontend-Integration.md)
-- [Domain Flows](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/Domain-Flows.md)
+## Путь одного запроса
 
-## Network layer во frontend
+```mermaid
+sequenceDiagram
+    autonumber
+    participant VM as ViewModel
+    participant R as Repository
+    participant A as APIClient
+    participant B as Backend
+    VM->>R: domain command
+    R->>A: endpoint + DTO body
+    A->>A: Bearer token и JSON
+    A->>B: HTTPS request
+    B-->>A: response/error
+    A-->>R: decoded DTO
+    R-->>VM: domain model
+```
 
-- Client: [APIClient.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift)
-- Endpoint protocol: [Endpoint.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/Endpoint.swift)
-- Endpoint structs: [SplitApp/Data/Network/Endpoints](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/Network/Endpoints)
-- DTO: [SplitApp/Data/DTOs](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/DTOs)
-- Mappers: [SplitApp/Data/Mappers](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/Mappers)
-- Repositories: [SplitApp/Data/Repositories](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/Repositories)
+Источник: [APIClient](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift), [ReceiptsDataRepository](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Repositories/ReceiptsRepository.swift), [EventMapper](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Mappers/EventMapper.swift).
 
-## Endpoint mapping
+## Правила совместимости
 
-| Frontend endpoint | Backend path | Файл |
-| --- | --- | --- |
-| `AuthUserEndpoint` | `POST /api/login` | [UserEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/UserEndpoints.swift) |
-| `RefreshTokenEndpoint` | `POST /api/refresh` | [UserEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/UserEndpoints.swift) |
-| `ListUsersEndpoint` | `GET /api/users` | [UserEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/UserEndpoints.swift) |
-| `CreateEventEndpoint` | `POST /api/events` | [EventEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
-| `ListEventsEndpoint` | `GET /api/events` | [EventEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
-| `GetEventEndpoint` | `GET /api/events/{id}` | [EventEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
-| `UpdateEventEndpoint` | `PATCH /api/events/{id}` | [EventEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
-| `DeleteEventEndpoint` | `DELETE /api/events/{id}` | [EventEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
-| `AddParticipantsEndpoint` | `POST /api/events/{id}/participants` | [EventEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
-| `RemoveParticipantEndpoint` | `DELETE /api/events/{id}/participants/{user_id}` | [EventEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/EventEndpoints.swift) |
-| `CreateReceiptEndpoint` | `POST /api/events/{id}/receipts` | [ReceiptEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/ReceiptEndpoints.swift) |
-| `ListReceiptsEndpoint` | `GET /api/events/{id}/receipts` | [ReceiptEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/ReceiptEndpoints.swift) |
-| `UpdateReceiptEndpoint` | `PATCH /api/receipts/{id}` | [ReceiptEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/ReceiptEndpoints.swift) |
-| `DeleteReceiptEndpoint` | `DELETE /api/receipts/{id}` | [ReceiptEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/ReceiptEndpoints.swift) |
-| `UploadReceiptImageEndpoint` | `POST /api/receipts/{id}/image` | [ReceiptEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/ReceiptEndpoints.swift) |
-| `ReceiptImagePresignedURLEndpoint` | `GET /api/receipts/{id}/image/presigned-url` | [ReceiptEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/ReceiptEndpoints.swift) |
-| `GetBalancesEndpoint` | `GET /api/events/{id}/balances` | [BalanceEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/BalanceEndpoints.swift) |
-| `CreatePaymentEndpoint` | `POST /api/events/{id}/payments` | [PaymentEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/PaymentEndpoints.swift) |
-| `ListPaymentsEndpoint` | `GET /api/events/{id}/payments` | [PaymentEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/PaymentEndpoints.swift) |
-| `UpdatePaymentEndpoint` | `PATCH /api/payments/{id}` | [PaymentEndpoints.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Data/Network/Endpoints/PaymentEndpoints.swift) |
+1. Сначала изменяется и проверяется backend route/schema/service и `openapi.yaml`.
+2. Затем синхронно обновляются iOS endpoint, DTO, mapper, repository и UI, если поле влияет на экран.
+3. Деньги и статусы не вычисляются как окончательная истина на клиенте: показывайте ответ backend.
+4. При ошибке `401` APIClient обновляет access token; повторяющийся сбой завершает сессию. Подробности — в [Авторизации](Authentication-And-Security).
+5. Для действий с чеком и платежом не удаляйте idempotency header без согласованной правки backend.
 
-## Правила синхронизации frontend и backend
-
-При любом изменении API в одном PR или в связанной серии PR нужно обновить:
-
-- backend route/service/schema code в [SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend);
-- [openapi.yaml](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml);
-- frontend endpoint struct;
-- frontend DTO;
-- mapper DTO -> domain;
-- repository contract и implementation;
-- user-facing error handling, если меняются status codes или error shape;
-- эту Wiki и backend Wiki.
-
-## Текущие follow-ups
-
-Актуальный список frontend/backend gaps находится в [FRONTEND_BACKEND_TODO.md](https://github.com/Strongf-bob/SplitApp/blob/main/FRONTEND_BACKEND_TODO.md).
-
-Самые важные направления:
-
-- dedicated payment flow;
-- event participants management screen;
-- event rename UI;
-- receipt photo upload/delete UX;
-- friends/search/invites product contract;
-- profile financial stats после backend metric contract;
-- уход от `Double` для money domain/UI models;
-- pagination после backend pagination contract.
-
+Связанный документ backend: [iOS Frontend Integration](https://github.com/Strongf-bob/SplitAppBackend/blob/main/docs/wiki/iOS-Frontend-Integration.md). Дальше: [Тесты и качество](Testing-And-Quality).

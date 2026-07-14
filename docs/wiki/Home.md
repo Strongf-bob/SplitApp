@@ -1,37 +1,43 @@
 # SplitApp iOS Wiki
 
-Это Wiki frontend-репозитория SplitApp. Она объясняет, как устроено iOS-приложение, как оно связано с backend, где искать ключевые файлы и какие правила соблюдать при разработке.
+Это рабочая документация нативного iOS-клиента SplitApp: приложения для совместных расходов в событиях. Она описывает то, что клиент действительно делает сейчас, и отделяет это от более широких возможностей backend. Исходник Wiki живёт в [`docs/wiki`](https://github.com/Strongf-bob/SplitApp/tree/main/docs/wiki) и зеркально публикуется в [GitHub Wiki](https://github.com/Strongf-bob/SplitApp/wiki).
 
-## Быстрые ссылки
+## Выберите маршрут
 
-- [Обзор проекта](Project-Overview.md) - назначение приложения, основные сценарии и репозитории.
-- [Локальный запуск](Local-Setup.md) - как открыть и запустить iOS-проект.
-- [Архитектура iOS-приложения](iOS-Architecture.md) - слои, зависимости, feature-модули и shared-компоненты.
-- [Интеграция с backend API](Backend-Integration.md) - endpoints, DTO, repositories и связь с backend OpenAPI.
-- [Авторизация и безопасность](Authentication-And-Security.md) - Yandex OAuth, access/refresh tokens, Keychain и правила клиента.
-- [Локальные данные и синхронизация](Data-And-Sync.md) - Core Data, offline/cache behavior, active event и money decoding.
-- [Тесты и проверки](Testing-And-Quality.md) - какие проверки запускать перед merge.
-- [Поддержка Wiki](Wiki-Maintenance.md) - как обновлять документацию вместе с кодом.
+| Нужно понять | Страница | Что в ней есть |
+| --- | --- | --- |
+| Какую пользу получает пользователь | [Обзор продукта](Project-Overview) | границы продукта, экраны и сущности |
+| Как проходят события, чеки и расчёты | [Доменные сценарии](Domain-Flows) | бизнес-правила и граница ответственности backend |
+| Как устроен Swift-клиент | [Архитектура iOS](iOS-Architecture) | слои, DI, навигация и точки расширения |
+| Как не сломать API-связку | [Интеграция с backend](Backend-Integration) | OpenAPI, endpoints, DTO и совместимость |
+| Как работают вход и токены | [Авторизация и безопасность](Authentication-And-Security) | Yandex OAuth, refresh и Keychain |
+| Что остаётся на устройстве | [Данные и синхронизация](Data-And-Sync) | Core Data, fallback и ограничения offline |
+| Как запустить, проверить и выпустить | [Запуск](Local-Setup), [Качество](Testing-And-Quality), [Релиз](Operations-And-Release) | практические команды и release checklist |
+| Как войти в проект | [Онбординг](Onboarding) | первые 30 минут и чтение кода |
 
-## Репозитории
+## Системы и источник правды
 
-- iOS frontend: [Strongf-bob/SplitApp](https://github.com/Strongf-bob/SplitApp)
-- Backend: [Strongf-bob/SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend)
-- Backend Wiki: [SplitAppBackend/docs/wiki](https://github.com/Strongf-bob/SplitAppBackend/tree/main/docs/wiki)
-- Backend OpenAPI contract: [openapi.yaml](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml)
-- Frontend/backend backlog: [FRONTEND_BACKEND_TODO.md](https://github.com/Strongf-bob/SplitApp/blob/main/FRONTEND_BACKEND_TODO.md)
+| Система | За что отвечает | Основная ссылка |
+| --- | --- | --- |
+| iOS-клиент | SwiftUI-интерфейс, безопасное хранение сессии, локальный кэш и запросы | [SplitApp](https://github.com/Strongf-bob/SplitApp) |
+| Backend | авторизация, права, деньги, состояния событий и API-контракт | [SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend) |
+| Контракт | допустимые request/response, методы и статусы API | [openapi.yaml](https://github.com/Strongf-bob/SplitAppBackend/blob/main/openapi.yaml) |
 
-## Главный принцип
+```mermaid
+flowchart LR
+    U["Пользователь"] --> I["SplitApp iOS"]
+    I -->|"HTTPS + Bearer token"| B["SplitAppBackend"]
+    I -->|"кэш только для UX"| C["Core Data / local store"]
+    B -->|"права, расчёты, итоговые состояния"| D["Источник правды"]
+    style U fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style I fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style B fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style C fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style D fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+```
 
-Backend - источник правды для пользователей, membership, прав на операции, балансов, платежей и состояния события. iOS-клиент отвечает за интерфейс, локальный cache, user-facing errors и корректное использование backend-контракта, но не должен заменять backend authorization локальными проверками.
+Источники: [APIConfiguration](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIConfiguration.swift), [APIClient](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift), [CoreDataStore](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Database/CoreDataStore.swift).
 
-## Что покрывает frontend
+## Правило актуальности
 
-- Yandex OAuth login и bootstrap пользовательской сессии.
-- Bottom tab navigation: события, друзья, профиль и связанные экраны.
-- Создание, просмотр, редактирование и удаление событий и чеков.
-- Работа с участниками, долями в чеке, балансами и платежами.
-- Загрузка и просмотр изображений чеков через backend.
-- Локальное сохранение данных через Core Data.
-- Нормализация сетевых ошибок в понятные сообщения для пользователя.
-
+Документация не заменяет код и контракт. При расхождении приоритет такой: runtime backend и OpenAPI → Swift-код → Wiki. Правила обновления и зеркалирования — в [Поддержке Wiki](Wiki-Maintenance).
