@@ -148,6 +148,18 @@ private final class FriendsRepositorySpy: FriendsRepository {
     }
 
     func removeFriendship(id: UUID) async throws {}
+
+    func createFriendInvite() async throws -> FriendInvite {
+        throw TestError.notImplemented
+    }
+
+    func previewFriendInvite(token: String) async throws -> FriendInvitePreview {
+        throw TestError.notImplemented
+    }
+
+    func acceptFriendInvite(token: String) async throws -> Friendship {
+        throw TestError.notImplemented
+    }
 }
 
 private final class UsersRepositorySpy: UsersRepository {

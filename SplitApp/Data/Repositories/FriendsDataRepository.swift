@@ -41,4 +41,25 @@ final class FriendsDataRepository: FriendsRepository {
     func removeFriendship(id: UUID) async throws {
         try await apiClient.requestVoid(endpoint: RemoveFriendshipEndpoint(id: id))
     }
+
+    func createFriendInvite() async throws -> FriendInvite {
+        let dto: FriendInviteDTO = try await apiClient.request(
+            endpoint: CreateFriendInviteEndpoint()
+        )
+        return FriendInviteMapper.mapToDomain(dto: dto)
+    }
+
+    func previewFriendInvite(token: String) async throws -> FriendInvitePreview {
+        let dto: FriendInvitePreviewDTO = try await apiClient.request(
+            endpoint: PreviewFriendInviteEndpoint(token: token)
+        )
+        return FriendInviteMapper.mapToDomain(dto: dto)
+    }
+
+    func acceptFriendInvite(token: String) async throws -> Friendship {
+        let dto: FriendshipDTO = try await apiClient.request(
+            endpoint: AcceptFriendInviteEndpoint(token: token)
+        )
+        return FriendshipMapper.mapToDomain(dto: dto)
+    }
 }

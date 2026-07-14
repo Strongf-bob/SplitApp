@@ -79,6 +79,41 @@ final class FriendsDataRepositoryTests: XCTestCase {
         XCTAssertEqual(FriendshipURLProtocol.requests.count, 3)
     }
 
+    func testFriendInviteActionsUseExpectedPathsAndMapResponses() async throws {
+        let inviteId = UUID()
+        let creatorId = UUID()
+        let friendshipId = UUID()
+        let token = "secure-token"
+        FriendshipURLProtocol.handler = { request in
+            switch request.url?.path {
+            case "/api/friend-invites":
+                XCTAssertEqual(request.httpMethod, "POST")
+                return .json(Self.friendInviteJSON(id: inviteId, creatorId: creatorId, token: token))
+            case "/api/friend-invites/\(token)/preview":
+                XCTAssertEqual(request.httpMethod, "GET")
+                return .json(Self.friendInvitePreviewJSON(id: inviteId, creatorId: creatorId))
+            case "/api/friend-invites/\(token)/accept":
+                XCTAssertEqual(request.httpMethod, "POST")
+                return .json(Self.friendshipJSON(id: friendshipId, status: "accepted"))
+            default:
+                XCTFail("Unexpected request: \(request)")
+                return .empty(statusCode: 500)
+            }
+        }
+
+        let repository = repository()
+        let invite = try await repository.createFriendInvite()
+        let preview = try await repository.previewFriendInvite(token: token)
+        let friendship = try await repository.acceptFriendInvite(token: token)
+
+        XCTAssertEqual(invite.id, inviteId)
+        XCTAssertEqual(invite.creator.id, creatorId)
+        XCTAssertEqual(invite.inviteURL.absoluteString, "splitapp://friend-invite/\(token)")
+        XCTAssertEqual(preview.creator.name, "Алиса")
+        XCTAssertEqual(friendship.id, friendshipId)
+        XCTAssertEqual(FriendshipURLProtocol.requests.count, 3)
+    }
+
     private func repository() -> FriendsDataRepository {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [FriendshipURLProtocol.self]
@@ -97,6 +132,42 @@ final class FriendsDataRepositoryTests: XCTestCase {
           "peer": null,
           "created_at": "2026-07-14T12:00:00Z",
           "updated_at": "2026-07-14T12:00:00Z"
+        }
+        """
+    }
+
+    private static func friendInviteJSON(id: UUID, creatorId: UUID, token: String) -> String {
+        """
+        {
+          "id": "\(id.uuidString)",
+          "creator": {
+            "id": "\(creatorId.uuidString)",
+            "name": "Алиса",
+            "phone_number": "79000000000",
+            "email": null,
+            "avatar_url": null
+          },
+          "token": "\(token)",
+          "invite_url": "splitapp://friend-invite/\(token)",
+          "status": "active",
+          "expires_at": "2026-07-14T12:15:00Z",
+          "created_at": "2026-07-14T12:00:00Z"
+        }
+        """
+    }
+
+    private static func friendInvitePreviewJSON(id: UUID, creatorId: UUID) -> String {
+        """
+        {
+          "id": "\(id.uuidString)",
+          "creator": {
+            "id": "\(creatorId.uuidString)",
+            "name": "Алиса",
+            "phone_number": "79000000000",
+            "email": null,
+            "avatar_url": null
+          },
+          "expires_at": "2026-07-14T12:15:00Z"
         }
         """
     }
