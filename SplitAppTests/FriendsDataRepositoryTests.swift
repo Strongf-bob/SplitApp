@@ -89,11 +89,13 @@ final class FriendsDataRepositoryTests: XCTestCase {
             case "/api/friend-invites":
                 XCTAssertEqual(request.httpMethod, "POST")
                 return .json(Self.friendInviteJSON(id: inviteId, creatorId: creatorId, token: token))
-            case "/api/friend-invites/\(token)/preview":
-                XCTAssertEqual(request.httpMethod, "GET")
-                return .json(Self.friendInvitePreviewJSON(id: inviteId, creatorId: creatorId))
-            case "/api/friend-invites/\(token)/accept":
+            case "/api/friend-invites/preview":
                 XCTAssertEqual(request.httpMethod, "POST")
+                XCTAssertEqual(Self.token(from: request), token)
+                return .json(Self.friendInvitePreviewJSON(id: inviteId, creatorId: creatorId))
+            case "/api/friend-invites/accept":
+                XCTAssertEqual(request.httpMethod, "POST")
+                XCTAssertEqual(Self.token(from: request), token)
                 return .json(Self.friendshipJSON(id: friendshipId, status: "accepted"))
             default:
                 XCTFail("Unexpected request: \(request)")
@@ -170,6 +172,28 @@ final class FriendsDataRepositoryTests: XCTestCase {
           "expires_at": "2026-07-14T12:15:00Z"
         }
         """
+    }
+
+    private static func token(from request: URLRequest) -> String? {
+        let data: Data?
+        if let body = request.httpBody {
+            data = body
+        } else if let stream = request.httpBodyStream {
+            stream.open()
+            defer { stream.close() }
+            var buffer = [UInt8](repeating: 0, count: 1_024)
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            data = count > 0 ? Data(buffer.prefix(count)) : nil
+        } else {
+            data = nil
+        }
+
+        guard let data,
+              let payload = try? JSONDecoder().decode(FriendInviteTokenPayload.self, from: data)
+        else {
+            return nil
+        }
+        return payload.token
     }
 }
 

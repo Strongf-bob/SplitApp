@@ -6,13 +6,15 @@ struct CreateFriendInviteEndpoint: Endpoint {
 }
 
 struct PreviewFriendInviteEndpoint: Endpoint {
-    let token: String
-    var path: String { "/api/friend-invites/\(token)/preview" }
-    let method: HTTPMethod = .GET
+    let path = "/api/friend-invites/preview"
+    let method: HTTPMethod = .POST
 }
 
 struct AcceptFriendInviteEndpoint: Endpoint {
-    let token: String
-    var path: String { "/api/friend-invites/\(token)/accept" }
+    let path = "/api/friend-invites/accept"
     let method: HTTPMethod = .POST
+}
+
+struct FriendInviteTokenPayload: Codable {
+    let token: String
 }

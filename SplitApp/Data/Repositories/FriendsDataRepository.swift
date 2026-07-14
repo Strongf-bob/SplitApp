@@ -51,14 +51,16 @@ final class FriendsDataRepository: FriendsRepository {
 
     func previewFriendInvite(token: String) async throws -> FriendInvitePreview {
         let dto: FriendInvitePreviewDTO = try await apiClient.request(
-            endpoint: PreviewFriendInviteEndpoint(token: token)
+            endpoint: PreviewFriendInviteEndpoint(),
+            body: FriendInviteTokenPayload(token: token)
         )
         return FriendInviteMapper.mapToDomain(dto: dto)
     }
 
     func acceptFriendInvite(token: String) async throws -> Friendship {
         let dto: FriendshipDTO = try await apiClient.request(
-            endpoint: AcceptFriendInviteEndpoint(token: token)
+            endpoint: AcceptFriendInviteEndpoint(),
+            body: FriendInviteTokenPayload(token: token)
         )
         return FriendshipMapper.mapToDomain(dto: dto)
     }
