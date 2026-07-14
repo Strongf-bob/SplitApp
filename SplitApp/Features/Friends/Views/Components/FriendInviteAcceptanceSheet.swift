@@ -3,6 +3,7 @@ import SwiftUI
 struct FriendInviteAcceptanceSheet: View {
     let invite: FriendInvitePreview
     let isAccepting: Bool
+    let errorMessage: String?
     let onDecline: () -> Void
     let onAccept: () -> Void
 
@@ -39,6 +40,13 @@ struct FriendInviteAcceptanceSheet: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(isAccepting)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
 
             Button("Не сейчас", action: onDecline)
                 .foregroundStyle(AppTheme.textSecondary)

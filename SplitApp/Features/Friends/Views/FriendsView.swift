@@ -56,6 +56,7 @@ struct FriendsView: View {
             FriendInviteAcceptanceSheet(
                 invite: invite,
                 isAccepting: viewModel.isAcceptingInvite,
+                errorMessage: viewModel.errorMessage,
                 onDecline: {
                     inviteStore.clear()
                     viewModel.pendingInvitePreview = nil

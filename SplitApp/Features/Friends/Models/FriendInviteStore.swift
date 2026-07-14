@@ -7,12 +7,12 @@ final class FriendInviteStore: ObservableObject {
 
     @Published private(set) var pendingToken: String?
 
-    private let defaults: UserDefaults
+    private let secureStorage: SecureStorage
     private let pendingTokenKey = "friendInvite.pendingToken"
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        pendingToken = defaults.string(forKey: pendingTokenKey)
+    init(secureStorage: SecureStorage = KeychainStorage()) {
+        self.secureStorage = secureStorage
+        pendingToken = secureStorage.get(pendingTokenKey)
     }
 
     @discardableResult
@@ -24,17 +24,18 @@ final class FriendInviteStore: ObservableObject {
               pathComponents.count == 2,
               let token = pathComponents.last,
               !token.isEmpty,
-              token != "/" else {
+              token != "/",
+              token.range(of: "^[A-Za-z0-9_-]{43}$", options: .regularExpression) != nil else {
             return false
         }
 
         pendingToken = token
-        defaults.set(token, forKey: pendingTokenKey)
+        secureStorage.save(token, for: pendingTokenKey)
         return true
     }
 
     func clear() {
         pendingToken = nil
-        defaults.removeObject(forKey: pendingTokenKey)
+        secureStorage.delete(pendingTokenKey)
     }
 }

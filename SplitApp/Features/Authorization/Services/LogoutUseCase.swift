@@ -5,15 +5,18 @@ final class LogoutUseCase {
     private let secureStorage: SecureStorage
     private let appState: AppState
     private let currentUserStore: CurrentUserStore
+    private let friendInviteStore: FriendInviteStore
 
     init(
         secureStorage: SecureStorage,
         appState: AppState,
-        currentUserStore: CurrentUserStore = .shared
+        currentUserStore: CurrentUserStore = .shared,
+        friendInviteStore: FriendInviteStore = .shared
     ) {
         self.secureStorage = secureStorage
         self.appState = appState
         self.currentUserStore = currentUserStore
+        self.friendInviteStore = friendInviteStore
     }
 
     @MainActor
@@ -21,6 +24,7 @@ final class LogoutUseCase {
         TokenStore.shared.clear()
         secureStorage.delete("refresh_token")
         currentUserStore.clear()
+        friendInviteStore.clear()
 
         do {
             try YandexLoginSDK.shared.logout()
