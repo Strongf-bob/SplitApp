@@ -16,12 +16,15 @@ SplitApp - iOS-приложение для совместных расходов
 
 - [Главная](docs/wiki/Home.md)
 - [Обзор проекта](docs/wiki/Project-Overview.md)
+- [Доменные сценарии](docs/wiki/Domain-Flows.md)
 - [Локальный запуск](docs/wiki/Local-Setup.md)
 - [Архитектура iOS-приложения](docs/wiki/iOS-Architecture.md)
 - [Интеграция с backend API](docs/wiki/Backend-Integration.md)
 - [Авторизация и безопасность](docs/wiki/Authentication-And-Security.md)
 - [Локальные данные и синхронизация](docs/wiki/Data-And-Sync.md)
 - [Тесты и проверки](docs/wiki/Testing-And-Quality.md)
+- [Эксплуатация и релиз](docs/wiki/Operations-And-Release.md)
+- [Онбординг](docs/wiki/Onboarding.md)
 - [Поддержка Wiki](docs/wiki/Wiki-Maintenance.md)
 
 ## Коротко о runtime
@@ -29,7 +32,7 @@ SplitApp - iOS-приложение для совместных расходов
 - Platform: iOS, Swift, SwiftUI.
 - Project: [SplitApp.xcodeproj](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp.xcodeproj).
 - Network: [APIClient.shared](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIClient.swift) и endpoint structs в [SplitApp/Data/Network/Endpoints](https://github.com/Strongf-bob/SplitApp/tree/main/SplitApp/Data/Network/Endpoints).
-- Backend base URL задан в [APIConfiguration.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIConfiguration.swift) как `http://46.243.201.8:8080`.
+- Backend base URL задан в [APIConfiguration.swift](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Network/APIConfiguration.swift) как `https://split-app.ru`.
 - Local persistence: [CoreDataStore](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Database/CoreDataStore.swift).
 - Secure token storage: [KeychainStorage](https://github.com/Strongf-bob/SplitApp/blob/main/SplitApp/Core/Auth/KeychainStorage.swift).
 
