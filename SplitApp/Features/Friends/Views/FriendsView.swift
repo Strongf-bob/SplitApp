@@ -39,7 +39,10 @@ struct FriendsView: View {
         }
         .task(id: inviteStore.pendingToken) {
             guard let token = inviteStore.pendingToken else { return }
-            await viewModel.loadFriendInvite(token: token)
+            let isValid = await viewModel.loadFriendInvite(token: token)
+            if !isValid {
+                inviteStore.clear()
+            }
         }
         .onChange(of: viewModel.inviteShareURL) { _, url in
             guard let url else { return }

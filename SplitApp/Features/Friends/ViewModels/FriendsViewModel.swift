@@ -135,13 +135,16 @@ class FriendsViewModel: ObservableObject {
         }
     }
 
-    func loadFriendInvite(token: String) async {
+    func loadFriendInvite(token: String) async -> Bool {
         errorMessage = nil
+        pendingInvitePreview = nil
 
         do {
             pendingInvitePreview = try await friendsRepository.previewFriendInvite(token: token)
+            return true
         } catch {
             errorMessage = "Это приглашение недействительно или уже истекло."
+            return false
         }
     }
 
