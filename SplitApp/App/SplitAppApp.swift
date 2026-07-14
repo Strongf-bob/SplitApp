@@ -51,14 +51,6 @@ struct SplitAppApp: App {
                         ContentView(dependencies: dependencies, appState: appState)
                     } else {
                         LoginView(viewModel: viewModel)
-                            .onOpenURL { url in
-                                do {
-                                    try YandexLoginSDK.shared.handleOpenURL(url)
-                                    print("URL успешно передан в SDK")
-                                } catch {
-                                    print("SDK не смог обработать URL: \(error)")
-                                }
-                            }
                     }
                 }
 
@@ -66,6 +58,18 @@ struct SplitAppApp: App {
                     SplitLaunchView()
                         .transition(.opacity)
                         .zIndex(1)
+                }
+            }
+            .onOpenURL { url in
+                guard !FriendInviteStore.shared.accept(url) else {
+                    return
+                }
+
+                do {
+                    try YandexLoginSDK.shared.handleOpenURL(url)
+                    print("URL успешно передан в SDK")
+                } catch {
+                    print("SDK не смог обработать URL: \(error)")
                 }
             }
             .task {

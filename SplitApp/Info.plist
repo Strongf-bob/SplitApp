@@ -27,6 +27,16 @@
 				<string>yx6c5725f5868c4604adaea1e4b892c14d</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>splitapp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>splitapp</string>
+			</array>
+		</dict>
 	</array>
 	<key>Information Property List</key>
 	<array>
