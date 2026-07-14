@@ -29,7 +29,8 @@
 - [ ] Add event activity feed from `GET /api/events/{id}/activity`.
 - [ ] Add dispute tracking from `/api/disputes` and `/api/events/{id}/disputes`.
 - [ ] Add receipt categories and event CSV export actions from `/api/receipt-categories` and `/api/events/{id}/export.csv`.
-- [ ] Rework friends/search/invites. `/api/users` now returns only visible users, so adding new people needs a dedicated invite/search backend contract or a product decision to limit selection to visible users.
+- [x] Show real backend friendships and incoming/outgoing friend requests in iOS. Event debts remain separate from friendship status.
+- [ ] Add friend discovery from imported contacts and secure AirDrop invite links. `/api/users` remains visibility-limited and is not a friend-search directory.
 - [ ] Add profile financial stats (`closedBillsAmount` / `openBillsAmount`) from `GET /api/users/me/financial-stats`.
 - [ ] Replace `Double` money domain/UI models with `Decimal` or minor-unit `Int` end to end. Current code is string-safe at DTO decode boundaries, but many domain/view models still store money as `Double`.
 - [ ] Add frontend pagination once backend pagination contracts are designed.

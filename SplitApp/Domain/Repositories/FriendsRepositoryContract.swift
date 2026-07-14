@@ -1,6 +1,8 @@
 import Foundation
 
 protocol FriendsRepository {
-    /// Online-first: remote users first, local cache fallback.
-    func listRemoteFriends() async throws -> [User]
+    func listFriendships() async throws -> [Friendship]
+    func acceptFriendship(id: UUID) async throws -> Friendship
+    func rejectFriendship(id: UUID) async throws -> Friendship
+    func removeFriendship(id: UUID) async throws
 }

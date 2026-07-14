@@ -6,7 +6,7 @@ struct AllFriendsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Все друзья")
+            SectionHeader(title: "Друзья")
                 .padding(.horizontal, 20)
 
             VStack(spacing: 8) {

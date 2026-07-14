@@ -58,9 +58,7 @@ final class AppDependencies {
                     coreDataStore: coreDataStore
                 )
         activeEventRepository = ActiveEventSelectionDataRepository()
-        friendsRepository = FriendsDataRepository(
-            usersRepository: self.usersRepository
-        )
+        friendsRepository = FriendsDataRepository(apiClient: apiClient)
 
         let serviceReceiptsRepository =
             (self.receiptsRepository as? ReceiptsDataRepository)

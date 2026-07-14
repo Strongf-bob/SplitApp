@@ -6,13 +6,17 @@ import SwiftUI
 class FriendsViewModel: ObservableObject {
     @Published var friends: [Friend] = []
     @Published var debts: [FriendDebt] = []
+    @Published private(set) var incomingRequests: [Friendship] = []
+    @Published private(set) var outgoingRequests: [Friendship] = []
     @Published var searchText: String = ""
     @Published private(set) var isLoading = false
     @Published private(set) var settlingDebtIds: Set<UUID> = []
+    @Published private(set) var updatingFriendshipIds: Set<UUID> = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var offlineMessage: String?
 
     private let friendsRepository: any FriendsRepository
+    private let usersRepository: any UsersRepository
     private let balancesRepository: any BalancesRepository
     private let paymentsRepository: any PaymentsRepository
     private let activeEventRepository: any ActiveEventRepository
@@ -32,12 +36,14 @@ class FriendsViewModel: ObservableObject {
 
     init(
         friendsRepository: any FriendsRepository,
+        usersRepository: any UsersRepository,
         balancesRepository: any BalancesRepository,
         paymentsRepository: any PaymentsRepository,
         activeEventRepository: any ActiveEventRepository,
         currentUserProvider: @escaping @MainActor () -> CurrentUser? = { CurrentUserStore.shared.user }
     ) {
         self.friendsRepository = friendsRepository
+        self.usersRepository = usersRepository
         self.balancesRepository = balancesRepository
         self.paymentsRepository = paymentsRepository
         self.activeEventRepository = activeEventRepository
@@ -60,30 +66,28 @@ class FriendsViewModel: ObservableObject {
             guard let currentUser = currentUserProvider() else {
                 friends = []
                 debts = []
+                incomingRequests = []
+                outgoingRequests = []
                 errorMessage = "Не удалось определить текущего пользователя. Войдите в аккаунт еще раз."
                 return
             }
 
+            let friendships = try await friendsRepository.listFriendships()
+            apply(friendships: friendships, currentUserId: currentUser.id)
+
             guard let eventId = await activeEventRepository.getActiveEventId() else {
-                let users = try await friendsRepository.listRemoteFriends()
-                friends = users
-                    .filter { $0.id != currentUser.id }
-                    .map(Self.mapUserToFriend)
                 debts = []
                 offlineMessage = "Выберите событие, чтобы увидеть долги по нему."
                 return
             }
 
-            async let usersFetch = friendsRepository.listRemoteFriends()
+            async let usersFetch = usersRepository.listUsers()
             async let balancesFetch = balancesRepository.getEventBalances(eventId: eventId)
 
             let users = try await usersFetch
             let balances = try await balancesFetch
             let friendsById = Dictionary(uniqueKeysWithValues: users.map { ($0.id, Self.mapUserToFriend($0)) })
 
-            friends = users
-                .filter { $0.id != currentUser.id }
-                .map(Self.mapUserToFriend)
             debts = Self.mapBalancesToDebts(
                 balances,
                 eventId: eventId,
@@ -92,8 +96,25 @@ class FriendsViewModel: ObservableObject {
             )
         } catch {
             errorMessage = "Не удалось загрузить друзей и долги. Проверьте интернет и попробуйте снова."
-            friends = []
             debts = []
+        }
+    }
+
+    func accept(_ friendship: Friendship) async {
+        await update(friendship) {
+            _ = try await self.friendsRepository.acceptFriendship(id: friendship.id)
+        }
+    }
+
+    func reject(_ friendship: Friendship) async {
+        await update(friendship) {
+            _ = try await self.friendsRepository.rejectFriendship(id: friendship.id)
+        }
+    }
+
+    func remove(_ friendship: Friendship) async {
+        await update(friendship) {
+            try await self.friendsRepository.removeFriendship(id: friendship.id)
         }
     }
 
@@ -142,6 +163,42 @@ private extension FriendsViewModel {
             color: makeStableColor(for: user.id),
             avatarURL: user.avatarURL
         )
+    }
+
+    func apply(friendships: [Friendship], currentUserId: UUID) {
+        friends = friendships.compactMap { friendship in
+            guard friendship.status == .accepted,
+                  let peer = friendship.peer
+            else {
+                return nil
+            }
+            return Self.mapUserToFriend(peer)
+        }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+
+        incomingRequests = friendships.filter {
+            $0.status == .requested && $0.addresseeId == currentUserId && $0.peer != nil
+        }
+        outgoingRequests = friendships.filter {
+            $0.status == .requested && $0.requesterId == currentUserId && $0.peer != nil
+        }
+    }
+
+    func update(
+        _ friendship: Friendship,
+        operation: () async throws -> Void
+    ) async {
+        guard !updatingFriendshipIds.contains(friendship.id) else { return }
+        updatingFriendshipIds.insert(friendship.id)
+        errorMessage = nil
+        defer { updatingFriendshipIds.remove(friendship.id) }
+
+        do {
+            try await operation()
+            await reload()
+        } catch {
+            errorMessage = "Не удалось обновить заявку в друзья. Проверьте интернет и попробуйте снова."
+        }
     }
 
     static func mapBalancesToDebts(
