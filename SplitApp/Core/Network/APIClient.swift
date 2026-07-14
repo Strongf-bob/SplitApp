@@ -9,7 +9,7 @@ final class APIClient {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    private init() {
+    init(session: URLSession = URLSession(configuration: .default)) {
         decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
@@ -40,7 +40,7 @@ final class APIClient {
         encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
 
-        session = URLSession(configuration: .default)
+        self.session = session
         secureStorage = KeychainStorage()
     }
 
