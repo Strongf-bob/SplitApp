@@ -3,6 +3,8 @@ import SwiftUI
 struct FriendsView: View {
     @StateObject private var viewModel: FriendsViewModel
     @ObservedObject private var networkMonitor: NetworkMonitor
+    @ObservedObject private var inviteStore: FriendInviteStore
+    @State private var shareItem: ShareItem?
 
     init(
         friendsRepository: any FriendsRepository,
@@ -10,7 +12,8 @@ struct FriendsView: View {
         balancesRepository: any BalancesRepository,
         paymentsRepository: any PaymentsRepository,
         activeEventRepository: any ActiveEventRepository,
-        networkMonitor: NetworkMonitor
+        networkMonitor: NetworkMonitor,
+        inviteStore: FriendInviteStore = .shared
     ) {
         _viewModel = StateObject(
             wrappedValue: FriendsViewModel(
@@ -22,6 +25,7 @@ struct FriendsView: View {
             )
         )
         self.networkMonitor = networkMonitor
+        self.inviteStore = inviteStore
     }
 
     var body: some View {
@@ -32,6 +36,37 @@ struct FriendsView: View {
         .navigationBarHidden(true)
         .task {
             await viewModel.load()
+        }
+        .task(id: inviteStore.pendingToken) {
+            guard let token = inviteStore.pendingToken else { return }
+            await viewModel.loadFriendInvite(token: token)
+        }
+        .onChange(of: viewModel.inviteShareURL) { _, url in
+            guard let url else { return }
+            shareItem = ShareItem(url: url)
+            viewModel.inviteShareURL = nil
+        }
+        .sheet(item: $shareItem) { item in
+            ShareSheet(activityItems: [item.url])
+        }
+        .sheet(item: $viewModel.pendingInvitePreview) { invite in
+            FriendInviteAcceptanceSheet(
+                invite: invite,
+                isAccepting: viewModel.isAcceptingInvite,
+                onDecline: {
+                    inviteStore.clear()
+                    viewModel.pendingInvitePreview = nil
+                },
+                onAccept: {
+                    guard let token = inviteStore.pendingToken else { return }
+                    Task {
+                        if await viewModel.acceptFriendInvite(token: token) {
+                            inviteStore.clear()
+                            viewModel.pendingInvitePreview = nil
+                        }
+                    }
+                }
+            )
         }
     }
 }
@@ -60,7 +95,11 @@ private extension FriendsView {
     }
 
     var header: some View {
-        FriendsNavigationHeader()
+        FriendsNavigationHeader {
+            Task {
+                await viewModel.createFriendInvite()
+            }
+        }
             .onTapGesture {
                 hideKeyboard()
             }
@@ -210,6 +249,11 @@ private extension FriendsView {
             .frame(minHeight: 100)
             .contentShape(Rectangle())
     }
+}
+
+private struct ShareItem: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
 }
 
 #Preview {

@@ -14,6 +14,10 @@ class FriendsViewModel: ObservableObject {
     @Published private(set) var updatingFriendshipIds: Set<UUID> = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var offlineMessage: String?
+    @Published private(set) var isCreatingInvite = false
+    @Published private(set) var isAcceptingInvite = false
+    @Published var inviteShareURL: URL?
+    @Published var pendingInvitePreview: FriendInvitePreview?
 
     private let friendsRepository: any FriendsRepository
     private let usersRepository: any UsersRepository
@@ -115,6 +119,45 @@ class FriendsViewModel: ObservableObject {
     func remove(_ friendship: Friendship) async {
         await update(friendship) {
             try await self.friendsRepository.removeFriendship(id: friendship.id)
+        }
+    }
+
+    func createFriendInvite() async {
+        guard !isCreatingInvite else { return }
+        isCreatingInvite = true
+        errorMessage = nil
+        defer { isCreatingInvite = false }
+
+        do {
+            inviteShareURL = try await friendsRepository.createFriendInvite().inviteURL
+        } catch {
+            errorMessage = "Не удалось создать приглашение. Проверьте интернет и попробуйте снова."
+        }
+    }
+
+    func loadFriendInvite(token: String) async {
+        errorMessage = nil
+
+        do {
+            pendingInvitePreview = try await friendsRepository.previewFriendInvite(token: token)
+        } catch {
+            errorMessage = "Это приглашение недействительно или уже истекло."
+        }
+    }
+
+    func acceptFriendInvite(token: String) async -> Bool {
+        guard !isAcceptingInvite else { return false }
+        isAcceptingInvite = true
+        errorMessage = nil
+        defer { isAcceptingInvite = false }
+
+        do {
+            _ = try await friendsRepository.acceptFriendInvite(token: token)
+            await reload()
+            return true
+        } catch {
+            errorMessage = "Не удалось принять приглашение. Проверьте интернет и попробуйте снова."
+            return false
         }
     }
 

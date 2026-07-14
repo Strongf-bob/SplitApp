@@ -83,6 +83,48 @@ final class FriendsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.incomingRequests.isEmpty)
     }
 
+    func testCreateAndAcceptInviteReloadFriendships() async {
+        let currentUserId = UUID()
+        let recipient = user(name: "Борис")
+        let repository = FriendsRepositorySpy(friendships: [])
+        repository.createdInvite = FriendInvite(
+            id: UUID(),
+            creator: user(name: "Я"),
+            token: "secure-token",
+            inviteURL: URL(string: "splitapp://friend-invite/secure-token")!,
+            expiresAt: Date().addingTimeInterval(900)
+        )
+        repository.preview = FriendInvitePreview(
+            id: UUID(),
+            creator: recipient,
+            expiresAt: Date().addingTimeInterval(900)
+        )
+        repository.acceptedInviteFriendship = friendship(
+            requesterId: currentUserId,
+            addresseeId: recipient.id,
+            status: .accepted,
+            peer: recipient
+        )
+        let viewModel = FriendsViewModel(
+            friendsRepository: repository,
+            usersRepository: UsersRepositorySpy(users: []),
+            balancesRepository: BalancesRepositorySpy(balances: []),
+            paymentsRepository: PaymentsRepositorySpy(),
+            activeEventRepository: ActiveEventRepositorySpy(eventId: nil),
+            currentUserProvider: { self.currentUser(id: currentUserId) }
+        )
+
+        await viewModel.createFriendInvite()
+        await viewModel.loadFriendInvite(token: "secure-token")
+        await viewModel.acceptFriendInvite(token: "secure-token")
+
+        XCTAssertEqual(viewModel.inviteShareURL?.absoluteString, "splitapp://friend-invite/secure-token")
+        XCTAssertEqual(viewModel.pendingInvitePreview?.creator.id, recipient.id)
+        XCTAssertEqual(repository.previewedTokens, ["secure-token"])
+        XCTAssertEqual(repository.acceptedInviteTokens, ["secure-token"])
+        XCTAssertEqual(viewModel.friends.map(\.id), [recipient.id])
+    }
+
     private func user(name: String) -> User {
         User(id: UUID(), name: name, phoneNumber: "79000000000")
     }
@@ -118,6 +160,11 @@ final class FriendsViewModelTests: XCTestCase {
 private final class FriendsRepositorySpy: FriendsRepository {
     var friendships: [Friendship]
     private(set) var acceptedIDs: [UUID] = []
+    var createdInvite: FriendInvite?
+    var preview: FriendInvitePreview?
+    var acceptedInviteFriendship: Friendship?
+    private(set) var previewedTokens: [String] = []
+    private(set) var acceptedInviteTokens: [String] = []
 
     init(friendships: [Friendship]) {
         self.friendships = friendships
@@ -150,15 +197,21 @@ private final class FriendsRepositorySpy: FriendsRepository {
     func removeFriendship(id: UUID) async throws {}
 
     func createFriendInvite() async throws -> FriendInvite {
-        throw TestError.notImplemented
+        guard let createdInvite else { throw TestError.notImplemented }
+        return createdInvite
     }
 
     func previewFriendInvite(token: String) async throws -> FriendInvitePreview {
-        throw TestError.notImplemented
+        previewedTokens.append(token)
+        guard let preview else { throw TestError.notImplemented }
+        return preview
     }
 
     func acceptFriendInvite(token: String) async throws -> Friendship {
-        throw TestError.notImplemented
+        acceptedInviteTokens.append(token)
+        guard let acceptedInviteFriendship else { throw TestError.notImplemented }
+        friendships.append(acceptedInviteFriendship)
+        return acceptedInviteFriendship
     }
 }
 
