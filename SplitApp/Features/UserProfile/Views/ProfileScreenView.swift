@@ -1,18 +1,8 @@
 import SwiftUI
 
 struct ProfileScreenView: View {
-    @State private var notificationsEnabled: Bool
-    @State private var bluetoothEnabled = false
     @State private var showsChatNotice = false
     @ObservedObject var viewModel: ProfileViewModel
-
-    init(
-        viewModel: ProfileViewModel,
-        notificationsEnabled: Bool = true
-    ) {
-        self.viewModel = viewModel
-        _notificationsEnabled = State(initialValue: notificationsEnabled)
-    }
 
     var body: some View {
         ZStack {
@@ -36,8 +26,6 @@ struct ProfileScreenView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             sectionTitle("ПРОФИЛЬ")
                             userCard(model: model)
-                            sectionTitle("РАЗРЕШЕНИЯ")
-                            permissions
                             sectionTitle("ДАННЫЕ")
                             dataActions
                             logoutButton
@@ -84,32 +72,6 @@ struct ProfileScreenView: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(AppTheme.textTertiary)
             .padding(.horizontal, 4)
-    }
-
-    private var permissions: some View {
-        VStack(spacing: 10) {
-            permissionRow("Bluetooth", icon: "bluetooth", isOn: $bluetoothEnabled)
-            permissionRow("Уведомления", icon: "bell", isOn: $notificationsEnabled)
-        }
-    }
-
-    private func permissionRow(_ title: String, icon: String, isOn: Binding<Bool>) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .frame(width: 32, height: 32)
-                .background(AppTheme.inputBackground, in: RoundedRectangle(cornerRadius: 12))
-                .foregroundStyle(AppTheme.textSecondary)
-            Text(title)
-                .font(.body)
-                .foregroundStyle(AppTheme.textPrimary)
-            Spacer()
-            Toggle(title, isOn: isOn)
-                .labelsHidden()
-                .tint(AppTheme.textPrimary)
-        }
-        .padding(.horizontal, 16)
-        .frame(minHeight: 58)
-        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var dataActions: some View {
