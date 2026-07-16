@@ -84,6 +84,7 @@ struct SplitAppApp: App {
                 }
             }
             .environmentObject(appState)
+            .preferredColorScheme(AppAppearance.preferredColorScheme)
         }
     }
 

@@ -1,7 +1,32 @@
+import SwiftUI
 import XCTest
 @testable import SplitApp
 
 final class SplitikMessageRequestTests: XCTestCase {
+    func testAppAppearanceAlwaysUsesLightColorScheme() {
+        XCTAssertEqual(AppAppearance.preferredColorScheme, .light)
+    }
+
+    func testChatScrollsWhenComposerReceivesFocus() {
+        let previous = SplitikChatScrollState(messageCount: 2, isComposerFocused: false, isSending: false)
+        let current = SplitikChatScrollState(messageCount: 2, isComposerFocused: true, isSending: false)
+
+        XCTAssertTrue(current.shouldScrollToBottom(comparedTo: previous))
+    }
+
+    func testChatScrollsWhenMessageIsAdded() {
+        let previous = SplitikChatScrollState(messageCount: 2, isComposerFocused: true, isSending: true)
+        let current = SplitikChatScrollState(messageCount: 3, isComposerFocused: true, isSending: false)
+
+        XCTAssertTrue(current.shouldScrollToBottom(comparedTo: previous))
+    }
+
+    func testChatDoesNotScrollForUnrelatedStateRefresh() {
+        let state = SplitikChatScrollState(messageCount: 2, isComposerFocused: false, isSending: false)
+
+        XCTAssertFalse(state.shouldScrollToBottom(comparedTo: state))
+    }
+
     func testEncodesProductionMessageContract() throws {
         let request = SplitikMessageRequest(message: "Помоги разделить ужин", sessionId: nil)
 
