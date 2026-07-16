@@ -1,6 +1,10 @@
 import SwiftUI
 import UIKit
 
+enum AppAppearance {
+    static let preferredColorScheme: ColorScheme = .light
+}
+
 enum AppTheme {
     private static func dynamicColor(light: String, dark: String) -> Color {
         Color(
