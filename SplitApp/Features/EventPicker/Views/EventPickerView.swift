@@ -238,7 +238,7 @@ struct EventPickerView: View {
                             .foregroundStyle(.red)
                     }
 
-                    Text("Способ деления указывается при добавлении чека.")
+                    Text("Способ деления указывается при добавлении платежа.")
                         .font(.footnote)
                         .foregroundStyle(AppTheme.textSecondary)
                         .multilineTextAlignment(.center)

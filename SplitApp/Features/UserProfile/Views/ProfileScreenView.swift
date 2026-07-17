@@ -2,7 +2,10 @@ import SwiftUI
 
 struct ProfileScreenView: View {
     @State private var showsChatNotice = false
+    @State private var showsPaymentPhoneEditor = false
+    @State private var paymentPhoneDraft = ""
     @ObservedObject var viewModel: ProfileViewModel
+    @ObservedObject private var currentUserStore = CurrentUserStore.shared
 
     var body: some View {
         ZStack {
@@ -46,6 +49,11 @@ struct ProfileScreenView: View {
         .task {
             await viewModel.loadProfile()
         }
+        .sheet(isPresented: $showsPaymentPhoneEditor) {
+            paymentPhoneEditor
+                .presentationDetents([.medium])
+                .presentationCornerRadius(SplitAppDesignTokens.modalCornerRadius)
+        }
     }
 
     private func userCard(model: ProfileScreenModel) -> some View {
@@ -82,18 +90,82 @@ struct ProfileScreenView: View {
     }
 
     private func contactCard(model: ProfileScreenModel) -> some View {
-        let phone = CurrentUserStore.shared.user?.phoneNumber ?? "Не указан"
+        let phone = currentUserStore.user?.phoneNumber ?? "Не указан"
+        let paymentPhone = currentUserStore.user?.configuredPaymentPhone
         return VStack(alignment: .leading, spacing: 10) {
             Text("Данные")
                 .font(AppTypography.montserrat(.semibold, size: 25, relativeTo: .title2))
             contactValue(label: "Телефон", value: phone)
             contactValue(label: "Почта", value: model.email)
-            contactValue(label: "Данные для перевода", value: phone)
+            HStack(alignment: .bottom, spacing: 12) {
+                contactValue(label: "Данные для перевода", value: paymentPhone ?? "Не указан")
+                Spacer(minLength: 8)
+                Button {
+                    paymentPhoneDraft = paymentPhone ?? ""
+                    viewModel.paymentPhoneErrorMessage = nil
+                    showsPaymentPhoneEditor = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color(hex: "#1F387C"))
+                        .frame(width: 44, height: 44)
+                        .background(Color.white, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Редактировать номер для перевода")
+            }
         }
         .foregroundStyle(.white)
         .padding(22)
         .frame(maxWidth: .infinity, minHeight: 308, alignment: .topLeading)
         .background(Color(hex: "#7988B0"), in: RoundedRectangle(cornerRadius: 22))
+    }
+
+    private var paymentPhoneEditor: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Номер для перевода")
+                    .font(.headline)
+
+                TextField("+7 999 000-00-00", text: $paymentPhoneDraft)
+                    .keyboardType(.phonePad)
+                    .textContentType(.telephoneNumber)
+                    .font(.title3)
+                    .padding(.horizontal, 16)
+                    .frame(height: 56)
+                    .background(AppTheme.disabledSurface, in: RoundedRectangle(cornerRadius: 16))
+
+                if let message = viewModel.paymentPhoneErrorMessage {
+                    Text(message)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.red)
+                }
+
+                SplitAppActionButton(
+                    title: viewModel.isUpdatingPaymentPhone ? "Сохраняем..." : "Сохранить",
+                    isEnabled: !viewModel.isUpdatingPaymentPhone && !paymentPhoneDraft.isEmpty,
+                    action: savePaymentPhone
+                )
+
+                Spacer()
+            }
+            .padding(20)
+            .navigationTitle("Данные для перевода")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") { showsPaymentPhoneEditor = false }
+                }
+            }
+        }
+    }
+
+    private func savePaymentPhone() {
+        Task {
+            if await viewModel.updatePaymentPhone(paymentPhoneDraft) {
+                showsPaymentPhoneEditor = false
+            }
+        }
     }
 
     private func contactValue(label: String, value: String) -> some View {

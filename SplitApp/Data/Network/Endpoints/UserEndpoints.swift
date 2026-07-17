@@ -24,6 +24,21 @@ struct CurrentUserEndpoint: Endpoint {
     let method: HTTPMethod = .GET
 }
 
+struct UpdateCurrentUserEndpoint: Endpoint {
+    let path = "/api/users/me"
+    let method: HTTPMethod = .PATCH
+}
+
+struct UpdateCurrentUserRequest: Encodable {
+    let paymentPhone: String
+    let paymentPhoneVisibility = "friends"
+
+    enum CodingKeys: String, CodingKey {
+        case paymentPhone = "payment_phone"
+        case paymentPhoneVisibility = "payment_phone_visibility"
+    }
+}
+
 struct SearchUsersEndpoint: Endpoint {
     let query: String
     let limit: Int

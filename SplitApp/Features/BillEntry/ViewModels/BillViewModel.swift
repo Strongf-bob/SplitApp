@@ -65,7 +65,7 @@ final class BillViewModel: ObservableObject {
         case .create:
             "Добавление платежа"
         case .edit:
-            "Просмотр чека"
+            "Просмотр платежа"
         }
     }
 
@@ -80,10 +80,13 @@ final class BillViewModel: ObservableObject {
             return saveDisabledReason
         }
         if isReadOnly {
-            return "Событие закрыто. Чек доступен только для просмотра."
+            return "Событие закрыто. Платёж доступен только для просмотра."
         }
         if isUsingCachedData {
-            return "Показываем сохранённый чек. Для сохранения изменений нужен интернет."
+            return "Показываем сохранённый платёж. Для изменений нужен интернет."
+        }
+        if !receiptTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, items.isEmpty {
+            return "Добавьте чек или позицию вручную, чтобы указать сумму платежа."
         }
         return nil
     }
@@ -201,10 +204,15 @@ final class BillViewModel: ObservableObject {
         }
     }
 
-    func addItem() {
+    func addItem(assignedTo participants: [Participant] = []) {
         guard !isReadOnly else { return }
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-            let newItem = BillItem(name: "", amount: 0, isEditing: true)
+            let newItem = BillItem(
+                name: "",
+                amount: 0,
+                assignedTo: participants,
+                isEditing: true
+            )
             items.append(newItem)
             isAddingItem = true
             triggerAnimation = UUID()
@@ -297,7 +305,7 @@ final class BillViewModel: ObservableObject {
         }
 
         guard let payerId = payerId ?? loadedEvent?.creatorId ?? participants.first?.id else {
-            saveErrorMessage = "Не удалось определить плательщика для этого чека."
+            saveErrorMessage = "Не удалось определить плательщика."
             return false
         }
 
@@ -321,7 +329,7 @@ final class BillViewModel: ObservableObject {
                     imageJPEGData: receiptImageJPEGData
                 )
                 saveNoticeMessage =
-                    "Чек сохранён, но фото не загрузилось. Повторите загрузку или завершите без фото."
+                    "Платёж сохранён, но фото чека не загрузилось. Повторите загрузку или завершите без фото."
                 print(
                     "[BillViewModel] op=save mode=image_upload_failed " +
                         "eventId=\(eventId) error=\(imageUploadFailure.localizedDescription)"
@@ -337,7 +345,7 @@ final class BillViewModel: ObservableObject {
             print("[BillViewModel] op=save mode=failure eventId=\(eventId) error=\(error.localizedDescription)")
             saveErrorMessage = UserFacingErrorMapper.message(
                 for: error,
-                fallback: "Не удалось сохранить чек. Проверьте интернет и попробуйте снова."
+                fallback: "Не удалось сохранить платёж. Проверьте интернет и попробуйте снова."
             )
             return false
         }
@@ -359,7 +367,7 @@ final class BillViewModel: ObservableObject {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             return true
         } catch {
-            saveNoticeMessage = "Чек уже сохранён. Фото пока не загрузилось — попробуйте ещё раз позже."
+            saveNoticeMessage = "Платёж уже сохранён. Фото чека пока не загрузилось — попробуйте ещё раз позже."
             return false
         }
     }

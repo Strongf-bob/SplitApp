@@ -16,7 +16,9 @@ struct SplitikChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            if onBack != nil {
+                header
+            }
             conversation
         }
         .background(Color.white.ignoresSafeArea())
@@ -25,12 +27,6 @@ struct SplitikChatView: View {
         }
         .task {
             await viewModel.loadHistory()
-        }
-        .onAppear {
-            AppTabCenter.shared.setTabBarHidden(true, for: .splitik)
-        }
-        .onDisappear {
-            AppTabCenter.shared.setTabBarHidden(false, for: .splitik)
         }
     }
 
@@ -181,12 +177,7 @@ struct SplitikChatView: View {
     private var header: some View {
         HStack {
             Button {
-                if let onBack {
-                    onBack()
-                } else {
-                    AppTabCenter.shared.setTabBarHidden(false)
-                    AppTabCenter.shared.select(.home)
-                }
+                onBack?()
             } label: {
                 Label("Назад", systemImage: "chevron.left")
             }

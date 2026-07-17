@@ -47,7 +47,7 @@ extension BillViewModel {
             if loadedEvent == nil {
                 loadErrorMessage = UserFacingErrorMapper.message(
                     for: error,
-                    fallback: "Не удалось загрузить чек. Проверьте интернет и попробуйте снова."
+                    fallback: "Не удалось загрузить платёж. Проверьте интернет и попробуйте снова."
                 )
             }
         }
@@ -92,7 +92,7 @@ extension BillViewModel {
             guard let receipt = receipts.first(where: { $0.id == receiptId })
             else {
                 if loadedReceipt == nil {
-                    loadErrorMessage = "Чек больше не доступен."
+                    loadErrorMessage = "Платёж больше не доступен."
                 }
                 isLoading = false
                 return
@@ -105,7 +105,7 @@ extension BillViewModel {
             if loadedReceipt == nil {
                 loadErrorMessage = UserFacingErrorMapper.message(
                     for: error,
-                    fallback: "Не удалось обновить чек. Проверьте интернет и попробуйте снова."
+                    fallback: "Не удалось обновить платёж. Проверьте интернет и попробуйте снова."
                 )
             } else {
                 isUsingCachedData = true

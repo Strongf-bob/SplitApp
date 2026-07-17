@@ -297,7 +297,7 @@ final class EventsHomeViewModel: ObservableObject {
                 }
                 errorMessage = UserFacingErrorMapper.message(
                     for: error,
-                    fallback: "Не удалось удалить чек. Проверьте интернет и попробуйте снова."
+                    fallback: "Не удалось удалить платёж. Проверьте интернет и попробуйте снова."
                 )
             }
         }
@@ -430,7 +430,7 @@ final class EventsHomeViewModel: ObservableObject {
 
     private func normalizedReceiptTitle(_ title: String?) -> String {
         let trimmedTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmedTitle.isEmpty ? "Чек" : trimmedTitle
+        return trimmedTitle.isEmpty ? "Платёж" : trimmedTitle
     }
 
     private func receiptInvolvesUser(_ receipt: ReceiptDTO, userId: UUID) -> Bool {

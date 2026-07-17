@@ -50,4 +50,34 @@ final class PaymentEditorPresentationTests: XCTestCase {
 
         XCTAssertEqual(first.idempotencyKey, second.idempotencyKey)
     }
+
+    func testManualPaymentItemUsesSelectedParticipants() {
+        let dependencies = AppDependencies.preview
+        let participant = Participant(name: "Алексей", initials: "А", color: .blue)
+        let viewModel = BillViewModel(
+            mode: .create(eventId: UUID(), scannedItems: [], receiptImageJPEGData: nil),
+            eventsRepository: dependencies.eventsRepository,
+            receiptsRepository: dependencies.receiptsRepository,
+            usersRepository: dependencies.usersRepository,
+            networkMonitor: dependencies.networkMonitor
+        )
+
+        viewModel.addItem(assignedTo: [participant])
+
+        XCTAssertEqual(viewModel.items.count, 1)
+        XCTAssertEqual(viewModel.items.first?.assignedTo.map(\.id), [participant.id])
+    }
+
+    func testEditorUsesPaymentTerminology() {
+        let dependencies = AppDependencies.preview
+        let viewModel = BillViewModel(
+            mode: .edit(eventId: UUID(), receiptId: UUID()),
+            eventsRepository: dependencies.eventsRepository,
+            receiptsRepository: dependencies.receiptsRepository,
+            usersRepository: dependencies.usersRepository,
+            networkMonitor: dependencies.networkMonitor
+        )
+
+        XCTAssertEqual(viewModel.title, "Просмотр платежа")
+    }
 }

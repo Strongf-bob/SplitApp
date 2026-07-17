@@ -22,7 +22,7 @@ struct BillEntryView: View {
                 Color.white.ignoresSafeArea()
 
                 if viewModel.isLoading, viewModel.items.isEmpty {
-                    ProgressView("Загрузка чека...")
+                    ProgressView("Загрузка платежа...")
                 } else if let error = viewModel.loadErrorMessage, viewModel.items.isEmpty {
                     loadError(error)
                 } else {
@@ -73,9 +73,7 @@ private extension BillEntryView {
         VStack(spacing: 0) {
             SplitAppModalHeader(
                 title: viewModel.title,
-                onClose: { dismiss() },
-                canPerformPrimary: viewModel.canSave,
-                onPrimary: saveAndDismiss
+                onClose: { dismiss() }
             )
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -88,6 +86,14 @@ private extension BillEntryView {
                         title: "Добавить чек",
                         isEnabled: !viewModel.isReadOnly && viewModel.items.isEmpty,
                         action: openReceiptScanner
+                    )
+
+                    SplitAppActionButton(
+                        title: "Добавить позицию вручную",
+                        isEnabled: !viewModel.isReadOnly,
+                        action: {
+                            viewModel.addItem(assignedTo: selectedParticipants)
+                        }
                     )
 
                     SplitAppActionButton(
@@ -162,7 +168,7 @@ private extension BillEntryView {
                 .font(.system(size: 20, weight: .regular))
                 .foregroundStyle(AppTheme.textPrimary)
 
-            TextField("Пример: За бухло", text: $viewModel.receiptTitle)
+            TextField("Название платежа", text: $viewModel.receiptTitle)
                 .font(.system(size: 17, weight: .regular))
                 .foregroundStyle(AppTheme.textPrimary)
                 .focused($isTitleFocused)
@@ -181,7 +187,7 @@ private extension BillEntryView {
     var receiptSummary: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Чек")
+                Text("Позиции платежа")
                     .font(AppTypography.pdfCardTitle)
                 Spacer()
                 Text(NSDecimalNumber(decimal: viewModel.total).stringValue + " ₽")
@@ -207,7 +213,7 @@ private extension BillEntryView {
 
             if !viewModel.isReadOnly {
                 Button {
-                    viewModel.addItem()
+                    viewModel.addItem(assignedTo: selectedParticipants)
                 } label: {
                     Label("Добавить позицию", systemImage: "plus.circle.fill")
                         .font(.system(size: 15, weight: .semibold))

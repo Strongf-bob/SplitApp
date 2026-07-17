@@ -17,10 +17,14 @@ struct BottomTabBarView: View {
             TabView(selection: $selectedTab) {
                 ForEach(configuration.items) { item in
                     item.makeView()
-                        .toolbar(.hidden, for: .tabBar)
+                        .tabItem {
+                            Label(item.title, systemImage: item.systemImage)
+                        }
                         .tag(item.id)
                 }
             }
+            .tint(AppTheme.pdfPrimaryBlue)
+            .toolbar(appTabCenter.isTabBarHidden ? .hidden : .visible, for: .tabBar)
 
             if appTabCenter.isProfilePresented {
                 ZStack(alignment: .topTrailing) {
@@ -41,19 +45,6 @@ struct BottomTabBarView: View {
                     .padding(.trailing, 16)
                 }
                 .transition(.opacity)
-            }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !appTabCenter.isTabBarHidden {
-                PDFBottomTabBar(
-                    items: configuration.items,
-                    selectedTab: $selectedTab,
-                    onSelect: { tab in
-                        appTabCenter.activate(tab)
-                        appTabCenter.closeProfile()
-                    }
-                )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .onAppear {
@@ -81,57 +72,10 @@ struct BottomTabBarView: View {
             appTabCenter.activate(tab)
             appTabCenter.consume()
         }
-        .animation(.easeInOut(duration: 0.18), value: appTabCenter.isTabBarHidden)
-    }
-}
-
-private struct PDFBottomTabBar: View {
-    let items: [BottomTabItem]
-    @Binding var selectedTab: BottomTabID
-    let onSelect: (BottomTabID) -> Void
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(items) { item in
-                Button {
-                    selectedTab = item.id
-                    onSelect(item.id)
-                } label: {
-                    VStack(spacing: 5) {
-                        Image(systemName: item.systemImage)
-                            .font(.system(size: 19, weight: .semibold))
-                            .frame(height: 22)
-
-                        Text(item.title)
-                            .font(AppTypography.montserrat(.semibold, size: 10, relativeTo: .caption2))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-                    .foregroundStyle(selectedTab == item.id ? Color(hex: "#0088FF") : AppTheme.textPrimary)
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                    .background {
-                        if selectedTab == item.id {
-                            RoundedRectangle(cornerRadius: 17, style: .continuous)
-                                .fill(Color(hex: "#EDEDED"))
-                        }
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.title)
-                .accessibilityAddTraits(selectedTab == item.id ? .isSelected : [])
-            }
+        .onChange(of: selectedTab) { _, tab in
+            appTabCenter.activate(tab)
+            appTabCenter.closeProfile()
         }
-        .padding(6)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 23, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 23, style: .continuous)
-                .stroke(Color.white.opacity(0.75), lineWidth: 1)
-        }
-        .shadow(color: Color.black.opacity(0.12), radius: 18, y: 8)
-        .padding(.horizontal, 18)
-        .padding(.top, 6)
-        .padding(.bottom, -10)
     }
 }
 

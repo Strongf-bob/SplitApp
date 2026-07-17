@@ -162,12 +162,12 @@ private extension EventsHomeView {
             if showsNavigationBar, viewModel.canMutateCurrentEventReceipts {
                 HStack(spacing: 10) {
                     compactAction(title: "Сканировать чек", systemImage: "viewfinder", action: onScanTap)
-                    compactAction(title: "Добавить платеж", systemImage: "plus", action: onAddTap)
+                    compactAction(title: "Добавить платёж", systemImage: "plus", action: onAddTap)
                 }
             }
 
             if viewModel.currentEventBills.isEmpty {
-                Text(viewModel.currentEvent == nil ? "Создайте или выберите событие" : "Здесь появятся чеки и платежи события")
+                Text(viewModel.currentEvent == nil ? "Создайте или выберите событие" : "Здесь появятся платежи события")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.white.opacity(0.75))
                     .frame(maxWidth: .infinity, alignment: .leading)

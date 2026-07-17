@@ -18,7 +18,7 @@ struct ReceiptRowView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(receipt.title ?? "Чек")
+                    Text(receipt.title ?? "Платёж")
                         .font(
                             .system(
                                 size: 17,

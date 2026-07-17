@@ -29,6 +29,37 @@ final class CurrentUserCacheTests: XCTestCase {
 
         XCTAssertNil(store.restoreCachedUser())
     }
+
+    func testCacheRestoresPaymentPhone() {
+        let cache = InMemoryCurrentUserCache()
+        let store = CurrentUserStore(cache: cache)
+        store.updateFromAuth(
+            User(
+                id: UUID(),
+                name: "Алиса",
+                phoneNumber: "+79990000000",
+                paymentPhone: "+79266243377"
+            )
+        )
+        store.clearInMemoryUser()
+
+        XCTAssertEqual(store.restoreCachedUser()?.paymentPhone, "+79266243377")
+    }
+
+    func testAccountPhoneIsNotUsedAsTransferPhone() {
+        let cache = InMemoryCurrentUserCache()
+        let store = CurrentUserStore(cache: cache)
+        store.updateFromAuth(
+            User(
+                id: UUID(),
+                name: "Алиса",
+                phoneNumber: "+79990000000",
+                paymentPhone: nil
+            )
+        )
+
+        XCTAssertNil(store.user?.configuredPaymentPhone)
+    }
 }
 
 private final class InMemoryCurrentUserCache: CurrentUserCaching {

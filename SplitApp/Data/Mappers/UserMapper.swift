@@ -7,7 +7,8 @@ enum UserMapper {
             name: dto.name,
             phoneNumber: dto.phoneNumber,
             email: dto.email,
-            avatarUrl: dto.avatarUrl
+            avatarUrl: dto.avatarUrl,
+            paymentPhone: dto.paymentPhone
         )
     }
 

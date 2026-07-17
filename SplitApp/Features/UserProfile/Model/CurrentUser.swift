@@ -9,6 +9,13 @@ struct CurrentUser {
     let color: Color
     let email: String?
     let phoneNumber: String?
+    let paymentPhone: String?
+
+    var configuredPaymentPhone: String? {
+        guard let value = paymentPhone?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else { return nil }
+        return value
+    }
 }
 
 @MainActor
@@ -33,7 +40,8 @@ final class CurrentUserStore: ObservableObject {
             avatarURL: avatarURL,
             color: Color(hex: "#7CB342"),
             email: authUser.email,
-            phoneNumber: authUser.phoneNumber
+            phoneNumber: authUser.phoneNumber,
+            paymentPhone: authUser.paymentPhone
         )
 
         saveToCache()
@@ -50,7 +58,8 @@ final class CurrentUserStore: ObservableObject {
             avatarURL: User.resolveAvatarURL(decoded.avatarURLString),
             color: Color(hex: "#7CB342"),
             email: decoded.email,
-            phoneNumber: decoded.phoneNumber
+            phoneNumber: decoded.phoneNumber,
+            paymentPhone: decoded.paymentPhone
         )
         return user
     }
@@ -72,7 +81,8 @@ final class CurrentUserStore: ObservableObject {
             initials: user.initials,
             avatarURLString: user.avatarURL?.absoluteString,
             email: user.email,
-            phoneNumber: user.phoneNumber
+            phoneNumber: user.phoneNumber,
+            paymentPhone: user.paymentPhone
         ))
     }
 
@@ -96,6 +106,7 @@ struct CurrentUserData: Codable {
     let avatarURLString: String?
     let email: String?
     let phoneNumber: String?
+    let paymentPhone: String?
 }
 
 extension CurrentUser {

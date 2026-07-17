@@ -13,9 +13,7 @@ struct ReceiptPreviewView: View {
                 VStack(spacing: 0) {
                     SplitAppModalHeader(
                         title: "Просмотр чека",
-                        onClose: onClose,
-                        canPerformPrimary: !viewModel.items.isEmpty,
-                        onPrimary: onConfirm
+                        onClose: onClose
                     )
                     .padding(.horizontal, 16)
                     .padding(.top, 8)

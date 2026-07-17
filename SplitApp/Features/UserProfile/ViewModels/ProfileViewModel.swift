@@ -6,6 +6,8 @@ final class ProfileViewModel: ObservableObject {
     @Published var profileModel: ProfileScreenModel?
     @Published var isLoading = false
     @Published var error: Error?
+    @Published private(set) var isUpdatingPaymentPhone = false
+    @Published var paymentPhoneErrorMessage: String?
 
     private let usersRepository: UsersRepository
     private let eventsRepository: any EventsRepository
@@ -44,22 +46,22 @@ final class ProfileViewModel: ObservableObject {
     private func loadProfileData(for currentUser: CurrentUser) async throws {
         print("📡 ProfileViewModel: Loading users list...")
         async let usersFetch = usersRepository.listUsers()
+        async let currentUserFetch = usersRepository.getCurrentUser()
         async let eventsFetch = eventsRepository.listEvents(userId: nil)
 
         let users = try await usersFetch
+        let refreshedCurrentUser = try await currentUserFetch
         let events = try await eventsFetch
         print("✅ ProfileViewModel: Loaded \(users.count) users, \(events.count) events")
 
-        if let foundUser = users.first(where: { $0.id == currentUser.id }) {
-            print("✅ ProfileViewModel: Found current user in list, updating...")
-            await MainActor.run {
-                CurrentUserStore.shared.updateFromAuth(foundUser)
-            }
-        } else {
-            print("⚠️ ProfileViewModel: Current user NOT found in users list")
-        }
+        CurrentUserStore.shared.updateFromAuth(refreshedCurrentUser)
 
-        profileModel = createProfileModel(from: currentUser, friendsCount: users.count - 1, eventsCount: events.count)
+        let refreshedProfile = CurrentUserStore.shared.user ?? currentUser
+        profileModel = createProfileModel(
+            from: refreshedProfile,
+            friendsCount: max(0, users.count - 1),
+            eventsCount: events.count
+        )
         print("✅ ProfileViewModel: Profile model created successfully")
         isLoading = false
     }
@@ -98,5 +100,30 @@ final class ProfileViewModel: ObservableObject {
     func logout() {
         logoutUseCase.execute()
         CurrentUserStore.shared.clear()
+    }
+
+    func updatePaymentPhone(_ rawPhone: String) async -> Bool {
+        let digits = rawPhone.filter(\.isNumber)
+        guard (10 ... 15).contains(digits.count) else {
+            paymentPhoneErrorMessage = "Введите корректный номер телефона."
+            return false
+        }
+
+        let normalizedPhone = SearchUsersEndpoint.normalizePhone(rawPhone)
+        isUpdatingPaymentPhone = true
+        paymentPhoneErrorMessage = nil
+        defer { isUpdatingPaymentPhone = false }
+
+        do {
+            let updatedUser = try await usersRepository.updatePaymentPhone(normalizedPhone)
+            CurrentUserStore.shared.updateFromAuth(updatedUser)
+            return true
+        } catch {
+            paymentPhoneErrorMessage = UserFacingErrorMapper.message(
+                for: error,
+                fallback: "Не удалось сохранить номер для перевода. Попробуйте ещё раз."
+            )
+            return false
+        }
     }
 }

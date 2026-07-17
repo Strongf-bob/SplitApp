@@ -85,7 +85,7 @@ final class SplitikChatViewModel: ObservableObject {
                 endpoint: SplitikDraftCommitEndpoint(draftId: draft.id),
                 body: nil
             )
-            messages.append(Message(role: .assistant, text: "План подтвержден. Событие и чеки созданы."))
+            messages.append(Message(role: .assistant, text: "План подтверждён. Событие и платежи созданы."))
         } catch {
             errorMessage = UserFacingErrorMapper.message(for: error, fallback: "Не удалось подтвердить план.")
         }

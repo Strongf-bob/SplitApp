@@ -45,7 +45,7 @@ struct EventEditorView: View {
                     )
 
                     SplitAppActionButton(
-                        title: "Добавить платеж",
+                        title: "Добавить платёж",
                         systemImage: createPaymentAfterEvent ? "checkmark.circle.fill" : nil,
                         action: { createPaymentAfterEvent.toggle() }
                     )

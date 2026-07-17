@@ -8,7 +8,8 @@ extension CDUser {
             name: name!,
             phoneNumber: phoneNumber!,
             email: email,
-            avatarUrl: avatarUrl
+            avatarUrl: avatarUrl,
+            paymentPhone: nil
         )
     }
 

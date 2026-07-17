@@ -51,6 +51,19 @@ final class UsersDataRepository: UsersRepository {
         }
     }
 
+    func getCurrentUser() async throws -> User {
+        let dto: UserDTO = try await apiClient.request(endpoint: CurrentUserEndpoint())
+        return UserMapper.mapToDomain(dto: dto)
+    }
+
+    func updatePaymentPhone(_ phone: String) async throws -> User {
+        let dto: UserDTO = try await apiClient.request(
+            endpoint: UpdateCurrentUserEndpoint(),
+            body: UpdateCurrentUserRequest(paymentPhone: phone)
+        )
+        return UserMapper.mapToDomain(dto: dto)
+    }
+
     private func upsertUsers(
         _ dtos: [UserDTO],
         in context: NSManagedObjectContext

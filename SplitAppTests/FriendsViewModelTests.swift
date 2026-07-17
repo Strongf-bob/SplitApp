@@ -225,7 +225,8 @@ final class FriendsViewModelTests: XCTestCase {
             avatarURL: nil,
             color: .green,
             email: nil,
-            phoneNumber: nil
+            phoneNumber: nil,
+            paymentPhone: nil
         )
     }
 
@@ -337,6 +338,21 @@ private final class UsersRepositorySpy: UsersRepository {
         return searchResults[query] ?? users
     }
     func getCachedUsers() async throws -> [User] { users }
+    func getCurrentUser() async throws -> User {
+        guard let user = users.first else { throw TestError.notImplemented }
+        return user
+    }
+    func updatePaymentPhone(_ phone: String) async throws -> User {
+        guard let user = users.first else { throw TestError.notImplemented }
+        return User(
+            id: user.id,
+            name: user.name,
+            phoneNumber: user.phoneNumber ?? "",
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+            paymentPhone: phone
+        )
+    }
 }
 
 private final class BalancesRepositorySpy: BalancesRepository {
