@@ -359,7 +359,7 @@ struct EventPickerView: View {
                     )
                 } catch {
                     participantError = "Событие создано, но не всех друзей удалось добавить."
-                    return
+                    try? await Task.sleep(for: .seconds(1.2))
                 }
             }
             showCreateSheet = false
