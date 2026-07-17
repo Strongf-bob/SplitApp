@@ -7,6 +7,12 @@ struct ParticipantPickerSheet: View {
     let onDone: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredParticipants: [Participant] {
+        guard !searchText.isEmpty else { return participants }
+        return participants.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
 
     private func isSelected(_ participant: Participant) -> Bool {
         selectedParticipants.contains(where: { $0.id == participant.id })
@@ -14,13 +20,12 @@ struct ParticipantPickerSheet: View {
 
     var body: some View {
         ZStack {
-            AppTheme.backgroundGradient
-                .ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             VStack(spacing: 20) {
                 HStack {
-                    Text("Назначить участников")
-                        .font(AppTheme.fontTitle)
+                    Text("Выбор друзей")
+                        .font(AppTypography.montserrat(.bold, size: 24, relativeTo: .title2))
                         .foregroundStyle(AppTheme.textPrimary)
                     Spacer()
                     Button(
@@ -35,9 +40,12 @@ struct ParticipantPickerSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
 
+                SearchBar(searchText: $searchText)
+                    .padding(.horizontal, 20)
+
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(participants, id: \.id) { participant in
+                        ForEach(filteredParticipants, id: \.id) { participant in
                             let selected = isSelected(participant)
                             Button(
                                 action: {
@@ -50,27 +58,23 @@ struct ParticipantPickerSheet: View {
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(participant.name)
                                                 .font(AppTheme.fontBodyBold)
-                                                .foregroundStyle(AppTheme.textPrimary)
-                                            Text(participant.initials)
-                                                .font(.system(size: 14))
-                                                .foregroundStyle(AppTheme.textSecondary)
+                                                .foregroundStyle(selected ? .white : AppTheme.textPrimary)
                                         }
 
                                         Spacer()
 
                                         Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                                             .font(.system(size: 22, weight: .semibold))
-                                            .foregroundStyle(selected ? AppTheme.accent : AppTheme.textTertiary)
+                                            .foregroundStyle(selected ? .white : AppTheme.textTertiary)
                                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selected)
                                     }
                                     .padding(16)
-                                    .background(.ultraThinMaterial)
-                                    .background(selected ? AppTheme.accent.opacity(0.08) : AppTheme.cardBackground)
+                                    .background(selected ? Color(hex: "#4C6096") : AppTheme.cardBackground)
                                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
                                             .stroke(
-                                                selected ? AppTheme.accent.opacity(0.5) : AppTheme.cardBorder,
+                                                selected ? Color(hex: "#4C6096") : AppTheme.cardBorder,
                                                 lineWidth: selected ? 1.5 : 1
                                             )
                                     )
@@ -108,29 +112,6 @@ struct ParticipantPickerSheet: View {
                     )
                     .buttonStyle(PlainButtonStyle())
 
-                    Button(
-                        action: {},
-                        label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 20))
-                                Text("Добавить участника")
-                                    .font(AppTheme.fontBodyBold)
-                            }
-                            .foregroundStyle(AppTheme.accent)
-                            .padding(.vertical, 16)
-                            .frame(maxWidth: .infinity)
-                            .background(AppTheme.surfaceOverlay)
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                                    .stroke(AppTheme.accent.opacity(0.3), lineWidth: 1)
-                            )
-                        }
-                    )
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(true)
-                    .opacity(0.6)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)

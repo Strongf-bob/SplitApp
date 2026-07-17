@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 enum BottomTabID: String, Hashable {
     case home
@@ -6,6 +7,21 @@ enum BottomTabID: String, Hashable {
     case friends
     case splitik
     case profile
+}
+
+@MainActor
+final class AppTabCenter: ObservableObject {
+    static let shared = AppTabCenter()
+
+    @Published private(set) var requestedTab: BottomTabID?
+
+    func select(_ tab: BottomTabID) {
+        requestedTab = tab
+    }
+
+    func consume() {
+        requestedTab = nil
+    }
 }
 
 struct BottomTabItem: Identifiable {
@@ -56,6 +72,7 @@ extension BottomTabConfiguration {
                 eventsRepository: dependencies.eventsRepository,
                 receiptsRepository: dependencies.receiptsRepository,
                 usersRepository: dependencies.usersRepository,
+                friendsRepository: dependencies.friendsRepository,
                 activeEventRepository: dependencies.activeEventRepository,
                 networkMonitor: dependencies.networkMonitor,
                 showsCatalog: showsCatalog

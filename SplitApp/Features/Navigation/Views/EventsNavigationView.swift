@@ -7,6 +7,7 @@ struct EventsNavigationView: View {
     private let eventsRepository: any EventsRepository
     private let receiptsRepository: any ReceiptsRepository
     private let usersRepository: any UsersRepository
+    private let friendsRepository: any FriendsRepository
     private let networkMonitor: NetworkMonitor
     private let showsCatalog: Bool
 
@@ -15,6 +16,7 @@ struct EventsNavigationView: View {
         eventsRepository: any EventsRepository,
         receiptsRepository: any ReceiptsRepository,
         usersRepository: any UsersRepository,
+        friendsRepository: any FriendsRepository,
         activeEventRepository: any ActiveEventRepository,
         networkMonitor: NetworkMonitor,
         showsCatalog: Bool = false,
@@ -23,6 +25,7 @@ struct EventsNavigationView: View {
         self.eventsRepository = eventsRepository
         self.receiptsRepository = receiptsRepository
         self.usersRepository = usersRepository
+        self.friendsRepository = friendsRepository
         self.networkMonitor = networkMonitor
         self.showsCatalog = showsCatalog
         _viewModel = StateObject(
@@ -43,7 +46,8 @@ struct EventsNavigationView: View {
                 if showsCatalog {
                     EventsCatalogView(
                         viewModel: viewModel.homeViewModel,
-                        onEventTap: { viewModel.handle(.eventSelected($0)) }
+                        onEventTap: { viewModel.handle(.eventSelected($0)) },
+                        onCreateTap: { viewModel.handle(.currentEventTapped) }
                     )
                 } else {
                     EventsHomeView(
@@ -92,7 +96,12 @@ struct EventsNavigationView: View {
                     .navigationBarBackButtonHidden(true)
 
                 case .eventPicker:
-                    EventPickerView(viewModel: viewModel.homeViewModel)
+                    EventPickerView(
+                        viewModel: viewModel.homeViewModel,
+                        friendsRepository: friendsRepository,
+                        eventsRepository: eventsRepository,
+                        onCreatePayment: { viewModel.createPayment(in: $0) }
+                    )
                 case .eventDetails:
                     EventsHomeView(
                         viewModel: viewModel.homeViewModel,
@@ -143,6 +152,7 @@ struct EventsNavigationView: View {
         eventsRepository: EventsDataRepository(),
         receiptsRepository: ReceiptsDataRepository(),
         usersRepository: UsersDataRepository(),
+        friendsRepository: FriendsDataRepository(),
         activeEventRepository: ActiveEventSelectionDataRepository(),
         networkMonitor: .shared
     )

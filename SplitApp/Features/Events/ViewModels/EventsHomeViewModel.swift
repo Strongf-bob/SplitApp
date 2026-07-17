@@ -97,7 +97,8 @@ final class EventsHomeViewModel: ObservableObject {
         }
     }
 
-    func createEvent(name: String) async {
+    @discardableResult
+    func createEvent(name: String) async -> Event? {
         isCreatingEvent = true
         defer { isCreatingEvent = false }
         do {
@@ -124,11 +125,13 @@ final class EventsHomeViewModel: ObservableObject {
                 latestEvents = fetchedItems
                 balanceSummary = homeData.balanceSummary
             }
+            return newEvent
         } catch {
             errorMessage = UserFacingErrorMapper.message(
                 for: error,
                 fallback: "Не удалось создать событие. Проверьте интернет и попробуйте снова."
             )
+            return nil
         }
     }
 

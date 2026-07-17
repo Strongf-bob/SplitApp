@@ -2,17 +2,37 @@ import SwiftUI
 
 struct EventPickerView: View {
     @ObservedObject var viewModel: EventsHomeViewModel
+    private let friendsRepository: any FriendsRepository
+    private let eventsRepository: any EventsRepository
+    private let onCreatePayment: (UUID) -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var showCreateSheet = false
     @State private var showSplitikCreation = false
+    @State private var showFriendPicker = false
     @State private var eventPendingDeletion: EventListItem?
     @State private var deletingEventID: UUID?
 
     @State private var newEventName = ""
+    @State private var availableUsers: [User] = []
+    @State private var selectedUserIDs: Set<UUID> = []
+    @State private var participantError: String?
+    @State private var createPaymentAfterEvent = false
     @State private var nameIsDuplicate = false
     @State private var shakeOffset: CGFloat = 0
     @FocusState private var isNameFieldFocused: Bool
+
+    init(
+        viewModel: EventsHomeViewModel,
+        friendsRepository: any FriendsRepository,
+        eventsRepository: any EventsRepository,
+        onCreatePayment: @escaping (UUID) -> Void
+    ) {
+        self.viewModel = viewModel
+        self.friendsRepository = friendsRepository
+        self.eventsRepository = eventsRepository
+        self.onCreatePayment = onCreatePayment
+    }
 
     var body: some View {
         ZStack {
@@ -93,6 +113,9 @@ struct EventPickerView: View {
         .fullScreenCover(isPresented: $showCreateSheet) {
             createEventSheet
         }
+        .sheet(isPresented: $showFriendPicker) {
+            eventFriendPicker
+        }
     }
 
     private func eventRow(_ event: EventListItem) -> some View {
@@ -126,20 +149,17 @@ struct EventPickerView: View {
                 AppTheme.backgroundGradient.ignoresSafeArea()
                 AppTheme.backgroundRadialGlow.ignoresSafeArea()
 
-                VStack(spacing: 24) {
-                    Text("📌")
-                        .font(.system(size: 56))
-                        .padding(.top, 32)
+                VStack(spacing: 14) {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("НАЗВАНИЕ СОБЫТИЯ")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppTypography.montserrat(.semibold, size: 14, relativeTo: .caption))
                             .tracking(1.2)
                             .foregroundStyle(AppTheme.textSecondary)
                             .padding(.horizontal, 4)
 
                         TextField("Например, День рождения", text: $newEventName)
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .font(AppTypography.montserrat(.medium, size: 18, relativeTo: .headline))
                             .foregroundStyle(AppTheme.textPrimary)
                             .tint(AppTheme.accent)
                             .padding(.vertical, 14)
@@ -170,6 +190,22 @@ struct EventPickerView: View {
                     }
                     .padding(.horizontal, 20)
 
+                    eventSetupButton(
+                        title: selectedUserIDs.isEmpty
+                            ? "Добавить друзей"
+                            : "Выбрано друзей: \(selectedUserIDs.count)",
+                        systemImage: "person.2.fill"
+                    ) {
+                        showFriendPicker = true
+                    }
+
+                    eventSetupButton(
+                        title: createPaymentAfterEvent ? "Платёж будет добавлен" : "Добавить платёж",
+                        systemImage: createPaymentAfterEvent ? "checkmark.circle.fill" : "creditcard"
+                    ) {
+                        createPaymentAfterEvent.toggle()
+                    }
+
                     GlassButton(
                         title: viewModel.isCreatingEvent ? "Создание…" : "Создать событие"
                     ) {
@@ -198,6 +234,12 @@ struct EventPickerView: View {
                     }
                     .buttonStyle(.plain)
 
+                    if let participantError {
+                        Text(participantError)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+
                     Text("Способ деления указывается при добавлении чека.")
                         .font(.footnote)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -225,6 +267,64 @@ struct EventPickerView: View {
         }
     }
 
+    private var eventFriendPicker: some View {
+        NavigationStack {
+            Group {
+                if availableUsers.isEmpty {
+                    ProgressView("Загружаем друзей...")
+                        .task { await loadAvailableUsers() }
+                } else {
+                    List(availableUsers, id: \.id) { user in
+                        Button {
+                            if selectedUserIDs.contains(user.id) {
+                                selectedUserIDs.remove(user.id)
+                            } else {
+                                selectedUserIDs.insert(user.id)
+                            }
+                        } label: {
+                            HStack {
+                                Text(user.name)
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                Spacer()
+                                Image(systemName: selectedUserIDs.contains(user.id) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(AppTheme.accent)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Добавить друзей")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") { showFriendPicker = false }
+                }
+            }
+        }
+    }
+
+    private func eventSetupButton(
+        title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(AppTypography.montserrat(.medium, size: 18, relativeTo: .headline))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 56)
+                .background(Color(hex: "#1F387C"), in: RoundedRectangle(cornerRadius: 15))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
+    }
+
+    private func loadAvailableUsers() async {
+        availableUsers = ((try? await friendsRepository.listFriendships()) ?? [])
+            .filter { $0.status == .accepted }
+            .compactMap(\.peer)
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
     // MARK: - Helpers
 
     private func submitCreate() {
@@ -242,10 +342,24 @@ struct EventPickerView: View {
 
         isNameFieldFocused = false
         Task {
-            await viewModel.createEvent(name: name)
+            guard let event = await viewModel.createEvent(name: name) else { return }
+            if !selectedUserIDs.isEmpty {
+                do {
+                    _ = try await eventsRepository.addParticipants(
+                        eventId: event.id,
+                        AddParticipantsCommand(userIds: Array(selectedUserIDs))
+                    )
+                } catch {
+                    participantError = "Событие создано, но не всех друзей удалось добавить."
+                    return
+                }
+            }
             showCreateSheet = false
             try? await Task.sleep(nanoseconds: 250_000_000)
             dismiss()
+            if createPaymentAfterEvent {
+                onCreatePayment(event.id)
+            }
         }
     }
 

@@ -4,6 +4,7 @@ struct BottomTabBarView: View {
     private let configuration: BottomTabConfiguration
     @State private var selectedTab: BottomTabID
     @ObservedObject private var friendInviteCenter = FriendInviteLinkCenter.shared
+    @ObservedObject private var appTabCenter = AppTabCenter.shared
 
     init(configuration: BottomTabConfiguration) {
         self.configuration = configuration
@@ -25,6 +26,11 @@ struct BottomTabBarView: View {
             if phone != nil {
                 selectedTab = .friends
             }
+        }
+        .onChange(of: appTabCenter.requestedTab) { _, tab in
+            guard let tab else { return }
+            selectedTab = tab
+            appTabCenter.consume()
         }
     }
 }

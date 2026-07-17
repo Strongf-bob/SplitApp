@@ -80,6 +80,11 @@ final class EventsNavigationViewModel: ObservableObject {
         path.removeAll()
     }
 
+    func createPayment(in eventId: UUID) {
+        path.removeAll()
+        billEntryDestination = .create(eventId: eventId)
+    }
+
     private func open(_ route: EventsNavigationRoute) {
         switch route {
         case .scanner:
