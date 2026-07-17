@@ -15,6 +15,7 @@ struct EventPickerView: View {
 
     @State private var newEventName = ""
     @State private var availableUsers: [User] = []
+    @State private var hasLoadedAvailableUsers = false
     @State private var selectedUserIDs: Set<UUID> = []
     @State private var participantError: String?
     @State private var createPaymentAfterEvent = false
@@ -112,9 +113,6 @@ struct EventPickerView: View {
         }
         .fullScreenCover(isPresented: $showCreateSheet) {
             createEventSheet
-        }
-        .sheet(isPresented: $showFriendPicker) {
-            eventFriendPicker
         }
     }
 
@@ -262,6 +260,9 @@ struct EventPickerView: View {
             .onAppear { isNameFieldFocused = true }
             .ignoresSafeArea(.keyboard, edges: .bottom)
         }
+        .sheet(isPresented: $showFriendPicker) {
+            eventFriendPicker
+        }
         .fullScreenCover(isPresented: $showSplitikCreation) {
             SplitikChatView(initialDraft: "Помоги создать событие для совместных расходов")
         }
@@ -270,9 +271,15 @@ struct EventPickerView: View {
     private var eventFriendPicker: some View {
         NavigationStack {
             Group {
-                if availableUsers.isEmpty {
+                if !hasLoadedAvailableUsers {
                     ProgressView("Загружаем друзей...")
                         .task { await loadAvailableUsers() }
+                } else if availableUsers.isEmpty {
+                    ContentUnavailableView(
+                        "Нет подтверждённых друзей",
+                        systemImage: "person.2",
+                        description: Text("Сначала добавьте друга и дождитесь принятия заявки.")
+                    )
                 } else {
                     List(availableUsers, id: \.id) { user in
                         Button {
@@ -323,6 +330,7 @@ struct EventPickerView: View {
             .filter { $0.status == .accepted }
             .compactMap(\.peer)
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        hasLoadedAvailableUsers = true
     }
 
     // MARK: - Helpers
