@@ -34,15 +34,18 @@ final class BillViewModel: ObservableObject {
     @Published private(set) var isNetworkAvailable: Bool
     @Published var loadErrorMessage: String?
     @Published var saveErrorMessage: String?
+    @Published private(set) var saveNoticeMessage: String?
 
     let mode: Mode
     let eventsRepository: any EventsRepository
     let receiptsRepository: any ReceiptsRepository
     let usersRepository: any UsersRepository
     private let networkMonitor: NetworkMonitor
+    let createReceiptIdempotencyKey = UUID().uuidString
 
     private var cancellables: Set<AnyCancellable> = []
     private var hasLoaded = false
+    private var pendingImageUpload: (receiptId: UUID, imageJPEGData: Data)?
 
     var loadedEvent: Event?
     var loadedReceipt: Receipt?
@@ -88,12 +91,17 @@ final class BillViewModel: ObservableObject {
     var canSave: Bool {
         !isLoading
             && !isSaving
+            && pendingImageUpload == nil
             && saveDisabledReason == nil
             && Self.hasValidContent(title: receiptTitle, items: items)
     }
 
     var saveButtonTitle: String {
         isSaving ? "Сохраняем..." : "Создать платёж"
+    }
+
+    var canRetryReceiptImageUpload: Bool {
+        pendingImageUpload != nil && !isSaving
     }
 
     private var saveDisabledReason: String? {
@@ -144,7 +152,8 @@ final class BillViewModel: ObservableObject {
 
     static func hasValidContent(title: String, items: [BillItem]) -> Bool {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        return items.contains {
+        guard !items.isEmpty else { return false }
+        return items.allSatisfy {
             !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && $0.amount > 0
                 && !$0.assignedTo.isEmpty
@@ -271,6 +280,7 @@ final class BillViewModel: ObservableObject {
 
     func save() async -> Bool {
         saveErrorMessage = nil
+        saveNoticeMessage = nil
 
         guard let eventId = mode.eventId else {
             saveErrorMessage = "Нужно открыть счёт из события, чтобы сохранить его на сервер."
@@ -281,11 +291,8 @@ final class BillViewModel: ObservableObject {
             return false
         }
 
-        let validItems = items.filter {
-            !$0.name.isEmpty && $0.amount > 0 && !$0.assignedTo.isEmpty
-        }
-        guard !validItems.isEmpty else {
-            saveErrorMessage = "Добавь хотя бы одну заполненную позицию с назначенным участником."
+        guard Self.hasValidContent(title: receiptTitle, items: items) else {
+            saveErrorMessage = "Заполни название, сумму и участников для каждой позиции."
             return false
         }
 
@@ -294,7 +301,7 @@ final class BillViewModel: ObservableObject {
             return false
         }
 
-        let request = makeReceiptRequest(payerId: payerId, items: validItems)
+        let request = makeReceiptRequest(payerId: payerId, items: items)
 
         isSaving = true
         defer { isSaving = false }
@@ -302,10 +309,26 @@ final class BillViewModel: ObservableObject {
         do {
             try await ensureParticipantsInEvent(
                 eventId: eventId,
-                items: validItems,
+                items: items,
                 payerId: payerId
             )
-            try await persistReceipt(request, eventId: eventId)
+            let outcome = try await persistReceipt(request, eventId: eventId)
+            if let outcome,
+               let imageUploadFailure = outcome.imageUploadFailure,
+               let receiptImageJPEGData {
+                pendingImageUpload = (
+                    receiptId: outcome.receipt.id,
+                    imageJPEGData: receiptImageJPEGData
+                )
+                saveNoticeMessage =
+                    "Чек сохранён, но фото не загрузилось. Повторите загрузку или завершите без фото."
+                print(
+                    "[BillViewModel] op=save mode=image_upload_failed " +
+                        "eventId=\(eventId) error=\(imageUploadFailure.localizedDescription)"
+                )
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                return false
+            }
             print("[BillViewModel] op=save mode=success eventId=\(eventId)")
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
@@ -316,6 +339,27 @@ final class BillViewModel: ObservableObject {
                 for: error,
                 fallback: "Не удалось сохранить чек. Проверьте интернет и попробуйте снова."
             )
+            return false
+        }
+    }
+
+    func retryReceiptImageUpload() async -> Bool {
+        guard let pendingImageUpload else { return false }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            _ = try await receiptsRepository.uploadReceiptImage(
+                receiptId: pendingImageUpload.receiptId,
+                imageJPEGData: pendingImageUpload.imageJPEGData
+            )
+            self.pendingImageUpload = nil
+            saveNoticeMessage = nil
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            return true
+        } catch {
+            saveNoticeMessage = "Чек уже сохранён. Фото пока не загрузилось — попробуйте ещё раз позже."
             return false
         }
     }

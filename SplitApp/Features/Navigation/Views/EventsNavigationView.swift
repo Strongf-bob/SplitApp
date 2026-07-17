@@ -10,6 +10,7 @@ struct EventsNavigationView: View {
     private let friendsRepository: any FriendsRepository
     private let networkMonitor: NetworkMonitor
     private let showsCatalog: Bool
+    private let tabID: BottomTabID
 
     init(
         service: EventManagementServiceProtocol,
@@ -20,6 +21,7 @@ struct EventsNavigationView: View {
         activeEventRepository: any ActiveEventRepository,
         networkMonitor: NetworkMonitor,
         showsCatalog: Bool = false,
+        tabID: BottomTabID = .home,
         rules: EventsNavigationRules = .init()
     ) {
         self.eventsRepository = eventsRepository
@@ -28,6 +30,7 @@ struct EventsNavigationView: View {
         self.friendsRepository = friendsRepository
         self.networkMonitor = networkMonitor
         self.showsCatalog = showsCatalog
+        self.tabID = tabID
         _viewModel = StateObject(
             wrappedValue: EventsNavigationViewModel(
                 service: service,
@@ -79,6 +82,7 @@ struct EventsNavigationView: View {
                 await inboxViewModel.load()
             }
             .onAppear {
+                AppTabCenter.shared.setTabBarHidden(!viewModel.path.isEmpty, for: tabID)
                 Task {
                     await viewModel.refreshData()
                 }
@@ -90,7 +94,10 @@ struct EventsNavigationView: View {
                 }
             }
             .onChange(of: viewModel.path) { _, path in
-                AppTabCenter.shared.setTabBarHidden(!path.isEmpty)
+                AppTabCenter.shared.setTabBarHidden(!path.isEmpty, for: tabID)
+            }
+            .onDisappear {
+                AppTabCenter.shared.setTabBarHidden(false, for: tabID)
             }
             .navigationDestination(for: EventsNavigationRoute.self) { route in
                 switch route {

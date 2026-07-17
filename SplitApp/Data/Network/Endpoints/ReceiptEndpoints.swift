@@ -2,9 +2,16 @@ import Foundation
 
 struct CreateReceiptEndpoint: Endpoint {
     let eventId: UUID
+    let idempotencyKey: String
+
+    init(eventId: UUID, idempotencyKey: String = UUID().uuidString) {
+        self.eventId = eventId
+        self.idempotencyKey = idempotencyKey
+    }
+
     var path: String { "/api/events/\(eventId.uuidString.lowercased())/receipts" }
     let method: HTTPMethod = .POST
-    let headers: [String: String] = ["Idempotency-Key": UUID().uuidString]
+    var headers: [String: String] { ["Idempotency-Key": idempotencyKey] }
 }
 
 struct ListReceiptsEndpoint: Endpoint {

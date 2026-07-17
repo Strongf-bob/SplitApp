@@ -27,10 +27,10 @@ struct SplitikChatView: View {
             await viewModel.loadHistory()
         }
         .onAppear {
-            AppTabCenter.shared.setTabBarHidden(true)
+            AppTabCenter.shared.setTabBarHidden(true, for: .splitik)
         }
         .onDisappear {
-            AppTabCenter.shared.setTabBarHidden(false)
+            AppTabCenter.shared.setTabBarHidden(false, for: .splitik)
         }
     }
 

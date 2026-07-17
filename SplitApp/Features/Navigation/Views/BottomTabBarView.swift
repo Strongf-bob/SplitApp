@@ -48,29 +48,37 @@ struct BottomTabBarView: View {
                 PDFBottomTabBar(
                     items: configuration.items,
                     selectedTab: $selectedTab,
-                    onSelect: { appTabCenter.closeProfile() }
+                    onSelect: { tab in
+                        appTabCenter.activate(tab)
+                        appTabCenter.closeProfile()
+                    }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .onAppear {
+            appTabCenter.activate(selectedTab)
             if inviteStore.pendingToken != nil || friendInviteCenter.pendingPhone != nil {
                 selectedTab = .friends
+                appTabCenter.activate(.friends)
             }
         }
         .onChange(of: inviteStore.pendingToken) { _, token in
             if token != nil {
                 selectedTab = .friends
+                appTabCenter.activate(.friends)
             }
         }
         .onChange(of: friendInviteCenter.pendingPhone) { _, phone in
             if phone != nil {
                 selectedTab = .friends
+                appTabCenter.activate(.friends)
             }
         }
         .onChange(of: appTabCenter.requestedTab) { _, tab in
             guard let tab else { return }
             selectedTab = tab
+            appTabCenter.activate(tab)
             appTabCenter.consume()
         }
         .animation(.easeInOut(duration: 0.18), value: appTabCenter.isTabBarHidden)
@@ -80,14 +88,14 @@ struct BottomTabBarView: View {
 private struct PDFBottomTabBar: View {
     let items: [BottomTabItem]
     @Binding var selectedTab: BottomTabID
-    let onSelect: () -> Void
+    let onSelect: (BottomTabID) -> Void
 
     var body: some View {
         HStack(spacing: 4) {
             ForEach(items) { item in
                 Button {
                     selectedTab = item.id
-                    onSelect()
+                    onSelect(item.id)
                 } label: {
                     VStack(spacing: 5) {
                         Image(systemName: item.systemImage)

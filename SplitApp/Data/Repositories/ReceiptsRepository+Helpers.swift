@@ -18,6 +18,21 @@ extension ReceiptsDataRepository {
         }
         return url
     }
+
+    func uploadReceiptImage(receiptId: UUID, imageJPEGData: Data) async throws -> String {
+        let response = try await uploadReceiptImageRequest(
+            receiptId: receiptId,
+            imageJPEGData: imageJPEGData
+        )
+        try await coreDataStore.performBackground { [weak self] context in
+            guard self != nil else { return }
+            let fetchRequest: NSFetchRequest<CDReceipt> = CDReceipt.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", receiptId as CVarArg)
+            fetchRequest.fetchLimit = 1
+            try context.fetch(fetchRequest).first?.imageUrl = response.imageUrl
+        }
+        return response.imageUrl
+    }
 }
 
 extension ReceiptsDataRepository {
@@ -91,6 +106,34 @@ extension ReceiptsDataRepository {
 
     func logOperation(operation: String, mode: String, context: String) {
         print("[ReceiptsRepo] op=\(operation) mode=\(mode) \(context)")
+    }
+
+    func isConnectivityFailure(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .cannotConnectToHost,
+             .cannotFindHost,
+             .dnsLookupFailed,
+             .networkConnectionLost,
+             .notConnectedToInternet,
+             .timedOut:
+            return true
+        default:
+            return false
+        }
+    }
+
+    func persistReceiptDTOWithoutBlockingUserFlow(_ dto: ReceiptDTO) async {
+        do {
+            try await coreDataStore.performBackground { [weak self] context in
+                try self?.upsertReceipt(dto, in: context)
+            }
+        } catch {
+            print(
+                "[ReceiptsRepo] op=create mode=cache_write_failed " +
+                    "receiptId=\(dto.id) error=\(error.localizedDescription)"
+            )
+        }
     }
 
     func persistDTOToLocalStores(_ dto: ReceiptDTO) async throws {
@@ -229,7 +272,7 @@ extension ReceiptsDataRepository {
         )
     }
 
-    func uploadReceiptImage(
+    func uploadReceiptImageRequest(
         receiptId: UUID,
         imageJPEGData: Data
     ) async throws -> ReceiptImageUploadResponseDTO {

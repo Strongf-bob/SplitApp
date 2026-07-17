@@ -14,7 +14,8 @@ protocol ReceiptsRepository {
     func getCachedReceipt(id: UUID) async throws -> Receipt
     /// Online-first policy controlled by `policy`.
     func getReceipt(id: UUID, eventId: UUID, policy: ReceiptFetchPolicy) async throws -> Receipt
-    func createReceipt(eventId: UUID, _ command: CreateReceiptCommand) async throws -> Receipt
+    func createReceipt(eventId: UUID, _ command: CreateReceiptCommand) async throws -> ReceiptCreationOutcome
+    func uploadReceiptImage(receiptId: UUID, imageJPEGData: Data) async throws -> String
     func updateReceipt(id: UUID, _ command: UpdateReceiptCommand) async throws -> Receipt
     func deleteReceipt(id: UUID) async throws
     func getReceiptImagePresignedURL(id: UUID) async throws -> URL

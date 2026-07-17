@@ -104,6 +104,7 @@ final class EventsHomeViewModel: ObservableObject {
 
     @discardableResult
     func createEvent(name: String) async -> Event? {
+        guard !isCreatingEvent else { return nil }
         isCreatingEvent = true
         defer { isCreatingEvent = false }
         do {

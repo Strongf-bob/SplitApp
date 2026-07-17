@@ -37,6 +37,10 @@ final class ReceiptsDataRepository: ReceiptsRepository {
             )
             return dto
         } catch {
+            guard isConnectivityFailure(error) else {
+                throw error
+            }
+
             let localDTO = makeLocalCreateReceiptDTO(
                 eventId: eventId,
                 request: request
@@ -152,6 +156,10 @@ final class ReceiptsDataRepository: ReceiptsRepository {
             )
             return dto
         } catch {
+            guard isConnectivityFailure(error) else {
+                throw error
+            }
+
             return try await handleUpdateReceiptFallback(
                 id: id,
                 request: request,
@@ -160,7 +168,7 @@ final class ReceiptsDataRepository: ReceiptsRepository {
         }
     }
 
-    func createReceipt(eventId: UUID, _ command: CreateReceiptCommand) async throws -> Receipt {
+    func createReceipt(eventId: UUID, _ command: CreateReceiptCommand) async throws -> ReceiptCreationOutcome {
         let request = CreateReceiptRequest(
             payerId: command.payerId,
             title: command.title,
@@ -168,31 +176,33 @@ final class ReceiptsDataRepository: ReceiptsRepository {
             items: command.items.map(mapCreateReceiptItemCommand)
         )
         var dto: ReceiptDTO = try await apiClient.request(
-            endpoint: CreateReceiptEndpoint(eventId: eventId),
+            endpoint: CreateReceiptEndpoint(
+                eventId: eventId,
+                idempotencyKey: command.idempotencyKey
+            ),
             body: request
         )
 
+        await persistReceiptDTOWithoutBlockingUserFlow(dto)
+
+        var imageUploadFailure: Error?
         if let receiptImageJPEGData = command.receiptImageJPEGData {
-            let uploadResponse = try await uploadReceiptImage(
-                receiptId: dto.id,
-                imageJPEGData: receiptImageJPEGData
-            )
-            dto = updateImageUrl(in: dto, imageUrl: uploadResponse.imageUrl)
-        }
-
-        do {
-            try await coreDataStore.performBackground { [weak self] context in
-                try self?.upsertReceipt(dto, in: context)
+            do {
+                let uploadResponse = try await uploadReceiptImageRequest(
+                    receiptId: dto.id,
+                    imageJPEGData: receiptImageJPEGData
+                )
+                dto = updateImageUrl(in: dto, imageUrl: uploadResponse.imageUrl)
+                await persistReceiptDTOWithoutBlockingUserFlow(dto)
+            } catch {
+                imageUploadFailure = error
             }
-        } catch {
-            // Backend create/upload already succeeded — don't block user flow on local cache write failure.
-            print(
-                "[ReceiptsRepo] op=create mode=cache_write_failed " +
-                "receiptId=\(dto.id) error=\(error.localizedDescription)"
-            )
         }
 
-        return mapToDomain(dto)
+        return ReceiptCreationOutcome(
+            receipt: mapToDomain(dto),
+            imageUploadFailure: imageUploadFailure
+        )
     }
 
     func getCachedReceipts(eventId: UUID) async throws -> [Receipt] {

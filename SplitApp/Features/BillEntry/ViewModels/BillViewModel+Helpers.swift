@@ -119,10 +119,10 @@ extension BillViewModel {
     func persistReceipt(
         _ command: CreateReceiptCommand,
         eventId: UUID
-    ) async throws {
+    ) async throws -> ReceiptCreationOutcome? {
         switch mode {
         case .create:
-            _ = try await receiptsRepository.createReceipt(
+            return try await receiptsRepository.createReceipt(
                 eventId: eventId,
                 command
             )
@@ -135,6 +135,7 @@ extension BillViewModel {
                     items: command.items
                 )
             )
+            return nil
         }
     }
 
@@ -207,7 +208,8 @@ extension BillViewModel {
                     }
                 )
             },
-            receiptImageJPEGData: receiptImageJPEGData
+            receiptImageJPEGData: receiptImageJPEGData,
+            idempotencyKey: createReceiptIdempotencyKey
         )
     }
 

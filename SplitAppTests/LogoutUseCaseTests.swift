@@ -20,12 +20,16 @@ final class LogoutUseCaseTests: XCTestCase {
         storage.save("refresh-token", for: "refresh_token")
         inviteStorage.save(String(repeating: "a", count: 43), for: "friendInvite.pendingToken")
         let appState = AppState(isLoading: false, isLoggedIn: true)
+        let appTabCenter = AppTabCenter()
+        appTabCenter.openProfile()
+        appTabCenter.setTabBarHidden(true)
 
         LogoutUseCase(
             secureStorage: storage,
             appState: appState,
             currentUserStore: userStore,
-            friendInviteStore: inviteStore
+            friendInviteStore: inviteStore,
+            appTabCenter: appTabCenter
         ).execute()
 
         XCTAssertNil(userStore.user)
@@ -33,6 +37,8 @@ final class LogoutUseCaseTests: XCTestCase {
         XCTAssertNil(storage.get("refresh_token"))
         XCTAssertNil(inviteStore.pendingToken)
         XCTAssertFalse(appState.isLoggedIn)
+        XCTAssertFalse(appTabCenter.isProfilePresented)
+        XCTAssertFalse(appTabCenter.isTabBarHidden)
     }
 }
 

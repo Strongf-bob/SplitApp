@@ -8,6 +8,7 @@ struct BillEntryView: View {
     @State private var showsReceiptFlow = false
     @State private var receiptPath: [ReceiptFlowStep] = []
     @State private var showsSplitik = false
+    @State private var assignmentItemID: UUID?
     @FocusState private var isTitleFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
@@ -39,7 +40,15 @@ struct BillEntryView: View {
                     selectedParticipants: selectedParticipants,
                     onToggle: toggleParticipant,
                     onDone: {
-                        viewModel.assignParticipantsToAllItems(selectedParticipants)
+                        if let assignmentItemID {
+                            viewModel.updateItem(
+                                id: assignmentItemID,
+                                assignedTo: selectedParticipants
+                            )
+                        } else {
+                            viewModel.assignParticipantsToAllItems(selectedParticipants)
+                        }
+                        self.assignmentItemID = nil
                         showsParticipantSheet = false
                     }
                 )
@@ -84,7 +93,11 @@ private extension BillEntryView {
                     SplitAppActionButton(
                         title: selectedParticipants.isEmpty ? "Добавить друзей" : "Добавить друзей · \(selectedParticipants.count)",
                         isEnabled: !viewModel.isReadOnly,
-                        action: { showsParticipantSheet = true }
+                        action: {
+                            assignmentItemID = nil
+                            selectedParticipants = uniqueAssignedParticipants
+                            showsParticipantSheet = true
+                        }
                     )
 
                     SplitAppActionButton(
@@ -108,6 +121,24 @@ private extension BillEntryView {
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(viewModel.saveErrorMessage == nil ? AppTheme.textSecondary : Color.red)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if let notice = viewModel.saveNoticeMessage {
+                        Text(notice)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        SplitAppActionButton(
+                            title: viewModel.isSaving ? "Загружаем фото..." : "Повторить загрузку фото",
+                            isEnabled: viewModel.canRetryReceiptImageUpload,
+                            action: retryImageUploadAndDismiss
+                        )
+
+                        Button("Готово без фото") { dismiss() }
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(AppTheme.pdfPrimaryBlue)
+                            .frame(maxWidth: .infinity)
                     }
                 }
                 .padding(.horizontal, 32)
@@ -159,16 +190,30 @@ private extension BillEntryView {
             }
 
             ForEach(viewModel.items) { item in
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(item.name.isEmpty ? "Без названия" : item.name)
-                        .font(.system(size: 15))
-                        .lineLimit(2)
-                    Spacer()
-                    Text(NSDecimalNumber(decimal: item.amount).stringValue + " ₽")
+                BillItemRow(
+                    item: item,
+                    isReadOnly: viewModel.isReadOnly,
+                    onAssign: {
+                        assignmentItemID = item.id
+                        selectedParticipants = item.assignedTo
+                        showsParticipantSheet = true
+                    },
+                    onDelete: { viewModel.removeItem(id: item.id) },
+                    onUpdate: { name, amount in
+                        viewModel.updateItem(id: item.id, name: name, amount: amount)
+                    }
+                )
+            }
+
+            if !viewModel.isReadOnly {
+                Button {
+                    viewModel.addItem()
+                } label: {
+                    Label("Добавить позицию", systemImage: "plus.circle.fill")
                         .font(.system(size: 15, weight: .semibold))
-                        .monospacedDigit()
+                        .foregroundStyle(AppTheme.pdfPrimaryBlue)
                 }
-                .foregroundStyle(AppTheme.textPrimary)
+                .buttonStyle(.plain)
             }
         }
         .padding(18)
@@ -244,6 +289,14 @@ private extension BillEntryView {
         guard viewModel.canSave else { return }
         Task {
             if await viewModel.save() {
+                dismiss()
+            }
+        }
+    }
+
+    func retryImageUploadAndDismiss() {
+        Task {
+            if await viewModel.retryReceiptImageUpload() {
                 dismiss()
             }
         }

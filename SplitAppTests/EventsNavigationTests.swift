@@ -46,6 +46,29 @@ final class EventsNavigationTests: XCTestCase {
         XCTAssertNil(imageData)
     }
 
+    func testScannerPreviewConfirmationCreatesPaymentFromCapturedReceipt() async {
+        let event = Event(name: "Поездка")
+        let viewModel = makeNavigationViewModel(event: event)
+        await viewModel.loadInitialDataIfNeeded()
+        viewModel.scannerViewModel.items = [
+            ScannedReceiptItem(name: "Такси", amount: 950)
+        ]
+        viewModel.scannerViewModel.scannedReceiptImageJPEGData = Data([1, 2, 3])
+
+        viewModel.handle(.scanButtonTapped)
+        viewModel.path.append(.receiptPreview)
+        viewModel.handle(.scannerCaptureCompleted)
+
+        XCTAssertEqual(viewModel.path, [.scanner, .receiptPreview])
+        guard case let .create(eventID, items, imageData) = viewModel.billEntryDestination?.mode else {
+            return XCTFail("Expected scanner confirmation to present payment editor")
+        }
+        XCTAssertEqual(eventID, event.id)
+        XCTAssertEqual(items.map(\.name), ["Такси"])
+        XCTAssertEqual(items.map(\.amount), [950])
+        XCTAssertEqual(imageData, Data([1, 2, 3]))
+    }
+
     private func makeNavigationViewModel(event: Event) -> EventsNavigationViewModel {
         EventsNavigationViewModel(
             homeViewModel: EventsHomeViewModel(

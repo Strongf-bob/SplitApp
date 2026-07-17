@@ -14,10 +14,20 @@ final class AppTabCenter: ObservableObject {
 
     @Published private(set) var requestedTab: BottomTabID?
     @Published private(set) var isProfilePresented = false
-    @Published private(set) var isTabBarHidden = false
+    @Published private var hiddenTabs: Set<BottomTabID> = []
+    @Published private(set) var activeTab: BottomTabID = .home
+
+    var isTabBarHidden: Bool {
+        hiddenTabs.contains(activeTab)
+    }
 
     func select(_ tab: BottomTabID) {
+        activeTab = tab
         requestedTab = tab
+    }
+
+    func activate(_ tab: BottomTabID) {
+        activeTab = tab
     }
 
     func consume() {
@@ -33,7 +43,22 @@ final class AppTabCenter: ObservableObject {
     }
 
     func setTabBarHidden(_ isHidden: Bool) {
-        isTabBarHidden = isHidden
+        setTabBarHidden(isHidden, for: activeTab)
+    }
+
+    func setTabBarHidden(_ isHidden: Bool, for tab: BottomTabID) {
+        if isHidden {
+            hiddenTabs.insert(tab)
+        } else {
+            hiddenTabs.remove(tab)
+        }
+    }
+
+    func resetShell() {
+        hiddenTabs.removeAll()
+        isProfilePresented = false
+        activeTab = .home
+        requestedTab = .home
     }
 }
 
@@ -76,7 +101,11 @@ extension BottomTabConfiguration {
     @MainActor
     static func makeDefault(with dependencies: AppDependencies, appState: AppState) -> BottomTabConfiguration {
         let storage = KeychainStorage()
-        let logoutUseCase = LogoutUseCase(secureStorage: storage, appState: appState)
+        let logoutUseCase = LogoutUseCase(
+            secureStorage: storage,
+            appState: appState,
+            appTabCenter: .shared
+        )
         let profileVM = ProfileViewModel(
             usersRepository: dependencies.usersRepository,
             eventsRepository: dependencies.eventsRepository,
@@ -91,7 +120,8 @@ extension BottomTabConfiguration {
                 friendsRepository: dependencies.friendsRepository,
                 activeEventRepository: dependencies.activeEventRepository,
                 networkMonitor: dependencies.networkMonitor,
-                showsCatalog: showsCatalog
+                showsCatalog: showsCatalog,
+                tabID: showsCatalog ? .events : .home
             )
         }
 

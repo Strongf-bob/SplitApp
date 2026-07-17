@@ -6,6 +6,23 @@ struct CreateReceiptCommand {
     let totalAmount: Double
     let items: [CreateReceiptItemCommand]
     let receiptImageJPEGData: Data?
+    let idempotencyKey: String
+
+    init(
+        payerId: UUID,
+        title: String?,
+        totalAmount: Double,
+        items: [CreateReceiptItemCommand],
+        receiptImageJPEGData: Data?,
+        idempotencyKey: String = UUID().uuidString
+    ) {
+        self.payerId = payerId
+        self.title = title
+        self.totalAmount = totalAmount
+        self.items = items
+        self.receiptImageJPEGData = receiptImageJPEGData
+        self.idempotencyKey = idempotencyKey
+    }
 }
 
 struct CreateReceiptItemCommand {
