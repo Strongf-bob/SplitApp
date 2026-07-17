@@ -1,16 +1,17 @@
 import SwiftUI
 
 struct SplitikChatView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var draft = ""
     @StateObject private var viewModel = SplitikChatViewModel()
     @FocusState private var isComposerFocused: Bool
+    private let onBack: (() -> Void)?
 
     private let bottomAnchor = "splitik-chat-bottom"
 
-    init(initialDraft: String = "") {
+    init(initialDraft: String = "", onBack: (() -> Void)? = nil) {
         _draft = State(initialValue: initialDraft)
+        self.onBack = onBack
     }
 
     var body: some View {
@@ -18,12 +19,18 @@ struct SplitikChatView: View {
             header
             conversation
         }
-        .background(AppTheme.contentSurface.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             composer
         }
         .task {
             await viewModel.loadHistory()
+        }
+        .onAppear {
+            AppTabCenter.shared.setTabBarHidden(true)
+        }
+        .onDisappear {
+            AppTabCenter.shared.setTabBarHidden(false)
         }
     }
 
@@ -86,6 +93,7 @@ struct SplitikChatView: View {
             Spacer()
         }
         .padding(32)
+        .offset(y: -30)
     }
 
     private func messageRow(_ message: SplitikChatViewModel.Message) -> some View {
@@ -173,31 +181,34 @@ struct SplitikChatView: View {
     private var header: some View {
         HStack {
             Button {
-                dismiss()
+                if let onBack {
+                    onBack()
+                } else {
+                    AppTabCenter.shared.setTabBarHidden(false)
+                    AppTabCenter.shared.select(.home)
+                }
             } label: {
                 Label("Назад", systemImage: "chevron.left")
             }
             .buttonStyle(.plain)
             Spacer()
         }
-        .font(.body.weight(.medium))
-        .foregroundStyle(AppTheme.textSecondary)
-        .padding(.horizontal, 20)
-        .frame(height: 64)
+        .font(.system(size: 24, weight: .regular))
+        .foregroundStyle(AppTheme.textPrimary)
+        .padding(.horizontal, 21)
+        .frame(height: 70)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.cardBackground)
-        .overlay(alignment: .bottom) {
-            AppTheme.cardBorder.frame(height: 1)
-        }
+        .background(Color.white)
     }
 
     private var composer: some View {
         HStack(spacing: 10) {
             TextField("Сообщение...", text: $draft)
                 .textFieldStyle(.plain)
-                .padding(.horizontal, 16)
-                .frame(height: 48)
-                .background(AppTheme.inputBackground, in: Capsule())
+                .padding(.horizontal, 22)
+                .frame(height: 62)
+                .background(Color.white, in: Capsule())
+                .overlay(Capsule().stroke(AppTheme.pdfPrimaryBlue, lineWidth: 2))
                 .focused($isComposerFocused)
                 .submitLabel(.send)
                 .onSubmit(sendDraft)
@@ -211,19 +222,19 @@ struct SplitikChatView: View {
                     }
                 }
                 .font(.headline.weight(.bold))
-                    .frame(width: 48, height: 48)
+                    .foregroundStyle(canSend ? Color.white : AppTheme.pdfPrimaryBlue)
+                    .frame(width: 62, height: 62)
+                    .background(canSend ? AppTheme.pdfPrimaryBlue : Color.white, in: Circle())
+                    .overlay(Circle().stroke(AppTheme.pdfPrimaryBlue, lineWidth: 2))
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppTheme.accent)
+            .buttonStyle(.plain)
             .disabled(!canSend)
             .accessibilityLabel("Отправить сообщение Сплитику")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(AppTheme.cardBackground)
-        .overlay(alignment: .top) {
-            AppTheme.cardBorder.frame(height: 1)
-        }
+        .padding(.horizontal, 21)
+        .padding(.top, 8)
+        .padding(.bottom, 18)
+        .background(Color.white)
         .alert("Сплитик", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }

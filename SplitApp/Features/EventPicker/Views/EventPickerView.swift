@@ -264,7 +264,10 @@ struct EventPickerView: View {
             eventFriendPicker
         }
         .fullScreenCover(isPresented: $showSplitikCreation) {
-            SplitikChatView(initialDraft: "Помоги создать событие для совместных расходов")
+            SplitikChatView(
+                initialDraft: "Помоги создать событие для совместных расходов",
+                onBack: { showSplitikCreation = false }
+            )
         }
     }
 

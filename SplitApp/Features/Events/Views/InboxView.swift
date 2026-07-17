@@ -23,7 +23,9 @@ struct InboxView: View {
             VStack(spacing: 0) {
                 SplitAppModalHeader(
                     title: "Уведомления",
-                    onClose: { dismiss() }
+                    onClose: { dismiss() },
+                    canPerformPrimary: true,
+                    onPrimary: { dismiss() }
                 )
                 .padding(.horizontal, 16)
                 .padding(.top, 8)

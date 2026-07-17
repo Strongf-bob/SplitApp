@@ -15,4 +15,14 @@ final class AppTabCenterTests: XCTestCase {
 
         XCTAssertFalse(center.isProfilePresented)
     }
+
+    func testModalRoutesCanHideAndRestoreTheTabBar() {
+        let center = AppTabCenter()
+
+        center.setTabBarHidden(true)
+        XCTAssertTrue(center.isTabBarHidden)
+
+        center.setTabBarHidden(false)
+        XCTAssertFalse(center.isTabBarHidden)
+    }
 }

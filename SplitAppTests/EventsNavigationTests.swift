@@ -3,6 +3,18 @@ import XCTest
 
 @MainActor
 final class EventsNavigationTests: XCTestCase {
+    func testCreateEventActionOpensDedicatedEditor() {
+        let rules = EventsNavigationRules()
+
+        XCTAssertEqual(rules.route(for: .createEventTapped), .eventEditor)
+    }
+
+    func testCurrentEventActionStillOpensEventPicker() {
+        let rules = EventsNavigationRules()
+
+        XCTAssertEqual(rules.route(for: .currentEventTapped), .eventPicker)
+    }
+
     func testSelectingCatalogEventSelectsItAndPushesEventDetails() async {
         let event = Event(name: "Поездка в такси")
         let viewModel = makeNavigationViewModel(event: event)

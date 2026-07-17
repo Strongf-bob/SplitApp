@@ -86,7 +86,10 @@ final class BillViewModel: ObservableObject {
     }
 
     var canSave: Bool {
-        !isLoading && !isSaving && saveDisabledReason == nil
+        !isLoading
+            && !isSaving
+            && saveDisabledReason == nil
+            && Self.hasValidContent(title: receiptTitle, items: items)
     }
 
     var saveButtonTitle: String {
@@ -137,6 +140,34 @@ final class BillViewModel: ObservableObject {
                 self?.isNetworkAvailable = isConnected
             }
             .store(in: &cancellables)
+    }
+
+    static func hasValidContent(title: String, items: [BillItem]) -> Bool {
+        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        return items.contains {
+            !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && $0.amount > 0
+                && !$0.assignedTo.isEmpty
+        }
+    }
+
+    func replaceScannedItems(_ scannedItems: [BillItem], imageData: Data?, assignedTo participants: [Participant]) {
+        guard !isReadOnly else { return }
+        items = scannedItems.map { item in
+            var updated = item
+            if updated.assignedTo.isEmpty {
+                updated.assignedTo = participants
+            }
+            return updated
+        }
+        receiptImageJPEGData = imageData
+    }
+
+    func assignParticipantsToAllItems(_ selectedParticipants: [Participant]) {
+        guard !isReadOnly else { return }
+        for index in items.indices {
+            items[index].assignedTo = selectedParticipants
+        }
     }
 
     func load() async {

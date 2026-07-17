@@ -49,6 +49,11 @@ final class EventsHomeViewModel: ObservableObject {
         currentEventBills.reduce(0) { $0 + $1.amount }
     }
 
+    var currentEventParticipants: [User] {
+        guard let currentEventData else { return [] }
+        return Self.participantsForLocalStore(from: currentEventData)
+    }
+
     var currentEventIsClosed: Bool {
         currentEvent?.isClosed == true
     }

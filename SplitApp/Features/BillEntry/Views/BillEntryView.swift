@@ -1,14 +1,14 @@
 import SwiftUI
 
-// swiftlint:disable type_body_length
 struct BillEntryView: View {
     @StateObject private var viewModel: BillViewModel
-    @StateObject private var keyboardObserver = KeyboardObserver()
-    @State private var showParticipantSheet = false
-    @State private var showSavingAnimation = false
-    @State private var savingTextOffset: CGFloat = 0
-    @State private var savingTextOpacity: Double = 0
-    @FocusState private var isReceiptTitleFocused: Bool
+    @State private var receiptViewModel = ReceiptViewModel()
+    @State private var selectedParticipants: [Participant] = []
+    @State private var showsParticipantSheet = false
+    @State private var showsReceiptFlow = false
+    @State private var receiptPath: [ReceiptFlowStep] = []
+    @State private var showsSplitik = false
+    @FocusState private var isTitleFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     init(viewModel: BillViewModel) {
@@ -18,314 +18,251 @@ struct BillEntryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                ZStack {
-                    AppTheme.backgroundGradient
-                        .ignoresSafeArea()
-
-                    AppTheme.backgroundRadialGlow
-                        .ignoresSafeArea()
-                }
-                .dismissKeyboardOnTap()
+                Color.white.ignoresSafeArea()
 
                 if viewModel.isLoading, viewModel.items.isEmpty {
                     ProgressView("Загрузка чека...")
-                        .font(.system(size: 17, weight: .medium, design: .rounded))
-                } else if let errorMessage = viewModel.loadErrorMessage, viewModel.items.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(.orange)
-
-                        Text(errorMessage)
-                            .font(.system(size: 17, weight: .medium, design: .rounded))
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, 24)
+                } else if let error = viewModel.loadErrorMessage, viewModel.items.isEmpty {
+                    loadError(error)
                 } else {
-                    VStack(spacing: 0) {
-                        receiptTitleCard
-                        billTableHeader
-
-                        ScrollViewReader { proxy in
-                            List {
-                                ForEach(viewModel.items) { item in
-                                    BillItemRow(
-                                        item: item,
-                                        isReadOnly: viewModel.isReadOnly,
-                                        onAssign: {
-                                            viewModel.selectedItemForAssignment = item
-                                            showParticipantSheet = true
-                                        },
-                                        onDelete: {
-                                            viewModel.removeItem(id: item.id)
-                                        },
-                                        onUpdate: { name, amount in
-                                            viewModel.updateItem(
-                                                id: item.id,
-                                                name: name,
-                                                amount: amount
-                                            )
-                                        }
-                                    )
-                                    .listRowBackground(Color.clear)
-                                    .listRowSeparator(.hidden)
-                                    .listRowInsets(
-                                        EdgeInsets(
-                                            top: 4,
-                                            leading: 20,
-                                            bottom: 4,
-                                            trailing: 20
-                                        )
-                                    )
-                                    .id(item.id)
-                                }
-                                .onDelete { indexSet in
-                                    if !viewModel.isReadOnly {
-                                        for index in indexSet {
-                                            let item = viewModel.items[index]
-                                            viewModel.removeItem(id: item.id)
-                                        }
-                                    }
-                                }
-                                .onChange(of: viewModel.items.count) { oldCount, newCount in
-                                    if newCount > oldCount, let lastItem = viewModel.items.last {
-                                        withAnimation(
-                                            .spring(response: 0.5, dampingFraction: 0.8)
-                                        ) {
-                                            proxy.scrollTo(lastItem.id, anchor: .bottom)
-                                        }
-                                    }
-                                }
-
-                                Color.clear
-                                    .frame(height: BillEntryLayout.bottomPanelReservedSpace)
-                                    .listRowBackground(Color.clear)
-                                    .listRowSeparator(.hidden)
-                                    .listRowInsets(
-                                        EdgeInsets(
-                                            top: 0,
-                                            leading: 20,
-                                            bottom: 0,
-                                            trailing: 20
-                                        )
-                                    )
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        hideKeyboard()
-                                    }
-                            }
-                            .listStyle(.plain)
-                            .scrollContentBackground(.hidden)
-                            .background(Color.clear)
-                        }
-
-                        if !keyboardObserver.isVisible {
-                            bottomActionPanel
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-                    }
-                    .animation(
-                        .spring(response: 0.35, dampingFraction: 0.8),
-                        value: keyboardObserver.isVisible
-                    )
-                    .simultaneousGesture(
-                        TapGesture().onEnded { _ in
-                            if keyboardObserver.isVisible {
-                                hideKeyboard()
-                            }
-                        }
-                    )
+                    editor
                 }
             }
-            .navigationTitle(viewModel.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: dismissView) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .frame(width: 40, height: 40)
-                            .background(AppTheme.inputBackground, in: Circle())
-                    }
-                    .accessibilityLabel("Закрыть")
-                }
-
-                if !viewModel.isReadOnly {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: saveAndDismiss) {
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 40, height: 40)
-                                .background(AppTheme.accent, in: Circle())
-                        }
-                        .disabled(!viewModel.canSave)
-                        .accessibilityLabel("Создать платёж")
-                    }
-                }
-            }
-            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .task {
-                await load()
+                await viewModel.load()
+                selectedParticipants = uniqueAssignedParticipants
             }
-            .sheet(isPresented: $showParticipantSheet) {
-                let selectedId = viewModel.selectedItemForAssignment?.id
-                let currentAssigned = selectedId.flatMap { id in
-                    viewModel.items.first(where: { $0.id == id })?.assignedTo
-                } ?? []
-
+            .sheet(isPresented: $showsParticipantSheet) {
                 ParticipantPickerSheet(
                     participants: viewModel.participants,
-                    selectedParticipants: currentAssigned,
-                    onToggle: { participant in
-                        if let itemId = selectedId {
-                            viewModel.toggleParticipant(to: itemId, participant: participant)
-                        }
-                    },
+                    selectedParticipants: selectedParticipants,
+                    onToggle: toggleParticipant,
                     onDone: {
-                        showParticipantSheet = false
+                        viewModel.assignParticipantsToAllItems(selectedParticipants)
+                        showsParticipantSheet = false
                     }
                 )
                 .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(SplitAppDesignTokens.modalCornerRadius)
+            }
+            .fullScreenCover(isPresented: $showsReceiptFlow, onDismiss: { receiptPath = [] }) {
+                receiptFlow
+            }
+            .fullScreenCover(isPresented: $showsSplitik) {
+                SplitikChatView(
+                    initialDraft: splitikDraft,
+                    onBack: { showsSplitik = false }
+                )
             }
         }
     }
+}
 
-    private var receiptTitleCard: some View {
-        GlassCard(padding: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("НАЗВАНИЕ ЧЕКА")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .tracking(1.1)
-                    .foregroundStyle(AppTheme.textSecondary)
-
-                TextField("Например: ужин в пятницу", text: $viewModel.receiptTitle)
-                    .font(AppTheme.fontBody)
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .focused($isReceiptTitleFocused)
-                    .disabled(viewModel.isReadOnly)
-                    .textInputAutocapitalization(.sentences)
-                    .submitLabel(.done)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 12)
-                    .background(
-                        isReceiptTitleFocused
-                            ? AppTheme.inputBackgroundFocused
-                            : AppTheme.inputBackground
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall)
-                            .stroke(
-                                isReceiptTitleFocused ? AppTheme.accent : Color.clear,
-                                lineWidth: 1.5
-                            )
-                    )
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
-    }
-
-    private var billTableHeader: some View {
-        HStack(spacing: 12) {
-            Text("ПОЗИЦИЯ")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .tracking(1.1)
-                .foregroundStyle(AppTheme.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text("СТОИМОСТЬ")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .tracking(1.1)
-                .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(width: BillEntryColumns.amountWidth, alignment: .center)
-
-            Text("ЧЬЁ")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .tracking(1.1)
-                .foregroundStyle(AppTheme.textSecondary)
-                .frame(width: BillEntryColumns.participantWidth, alignment: .center)
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 4)
-    }
-
-    private var bottomActionPanel: some View {
+private extension BillEntryView {
+    var editor: some View {
         VStack(spacing: 0) {
-            if !viewModel.isReadOnly {
-                AddItemButton {
-                    viewModel.addItem()
+            SplitAppModalHeader(
+                title: viewModel.title,
+                onClose: { dismiss() },
+                canPerformPrimary: viewModel.canSave,
+                onPrimary: saveAndDismiss
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 12) {
+                    titleField
+
+                    SplitAppActionButton(
+                        title: "Добавить чек",
+                        isEnabled: !viewModel.isReadOnly && viewModel.items.isEmpty,
+                        action: openReceiptScanner
+                    )
+
+                    SplitAppActionButton(
+                        title: selectedParticipants.isEmpty ? "Добавить друзей" : "Добавить друзей · \(selectedParticipants.count)",
+                        isEnabled: !viewModel.isReadOnly,
+                        action: { showsParticipantSheet = true }
+                    )
+
+                    SplitAppActionButton(
+                        title: viewModel.saveButtonTitle,
+                        isEnabled: viewModel.canSave,
+                        action: saveAndDismiss
+                    )
+
+                    SplitAppActionButton(
+                        title: "Создать со Сплитиком",
+                        isEnabled: !viewModel.isReadOnly && viewModel.items.isEmpty,
+                        action: { showsSplitik = true }
+                    )
+
+                    if !viewModel.items.isEmpty {
+                        receiptSummary
+                    }
+
+                    if let message = viewModel.statusMessage {
+                        Text(message)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(viewModel.saveErrorMessage == nil ? AppTheme.textSecondary : Color.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 32)
+                .padding(.top, 18)
+                .padding(.bottom, 40)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .overlay(alignment: .top) {
+            Capsule()
+                .fill(Color(hex: "#CCCCCC"))
+                .frame(width: 36, height: 5)
+                .padding(.top, 5)
+                .accessibilityHidden(true)
+        }
+    }
+
+    var titleField: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("Введите название платежа")
+                .font(.system(size: 20, weight: .regular))
+                .foregroundStyle(AppTheme.textPrimary)
+
+            TextField("Пример: За бухло", text: $viewModel.receiptTitle)
+                .font(.system(size: 17, weight: .regular))
+                .foregroundStyle(AppTheme.textPrimary)
+                .focused($isTitleFocused)
+                .disabled(viewModel.isReadOnly)
+                .textInputAutocapitalization(.sentences)
+                .submitLabel(.done)
+                .frame(height: 57)
+                .padding(.horizontal, 25)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(isTitleFocused ? AppTheme.pdfPrimaryBlue : AppTheme.textSecondary, lineWidth: 1)
+                }
+        }
+    }
+
+    var receiptSummary: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Чек")
+                    .font(AppTypography.pdfCardTitle)
+                Spacer()
+                Text(NSDecimalNumber(decimal: viewModel.total).stringValue + " ₽")
+                    .font(AppTypography.pdfCardTitle)
+                    .monospacedDigit()
             }
 
-            GlassCard {
-                HStack {
-                    Text("Итого")
-                        .font(.system(size: 24, weight: .semibold, design: .rounded))
-                        .foregroundStyle(AppTheme.textPrimary)
+            ForEach(viewModel.items) { item in
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(item.name.isEmpty ? "Без названия" : item.name)
+                        .font(.system(size: 15))
+                        .lineLimit(2)
                     Spacer()
-                    Text("₽\(NSDecimalNumber(decimal: viewModel.total).stringValue)")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.accent)
-                        .contentTransition(.numericText())
+                    Text(NSDecimalNumber(decimal: item.amount).stringValue + " ₽")
+                        .font(.system(size: 15, weight: .semibold))
+                        .monospacedDigit()
                 }
+                .foregroundStyle(AppTheme.textPrimary)
             }
-            .padding(.horizontal, 20)
+        }
+        .padding(18)
+        .background(AppTheme.disabledSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
 
-            if !viewModel.isReadOnly {
-                GlassButton(title: viewModel.saveButtonTitle) {
-                    saveAndDismiss()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 8)
-                .disabled(!viewModel.canSave)
+    func loadError(_ message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.orange)
+            Text(message)
+                .font(.body)
+                .multilineTextAlignment(.center)
+            SplitAppActionButton(title: "Закрыть", action: { dismiss() })
+        }
+        .padding(32)
+    }
+
+    var uniqueAssignedParticipants: [Participant] {
+        var seen = Set<UUID>()
+        return viewModel.items.flatMap(\.assignedTo).filter { seen.insert($0.id).inserted }
+    }
+
+    func toggleParticipant(_ participant: Participant) {
+        if selectedParticipants.contains(where: { $0.id == participant.id }) {
+            selectedParticipants.removeAll { $0.id == participant.id }
+        } else {
+            selectedParticipants.append(participant)
+        }
+    }
+
+    func openReceiptScanner() {
+        receiptPath = []
+        showsReceiptFlow = true
+    }
+
+    var receiptFlow: some View {
+        NavigationStack(path: $receiptPath) {
+            CameraView(viewModel: receiptViewModel) {
+                receiptPath.append(.preview)
+            }
+            .navigationDestination(for: ReceiptFlowStep.self) { _ in
+                ReceiptPreviewView(
+                    viewModel: receiptViewModel,
+                    onClose: { showsReceiptFlow = false },
+                    onConfirm: confirmReceipt
+                )
             }
         }
     }
 
-    private func load() async {
-        await viewModel.load()
+    func confirmReceipt() {
+        let billItems = receiptViewModel.items.map {
+            BillItem(name: $0.name, amount: $0.amount, assignedTo: selectedParticipants)
+        }
+        viewModel.replaceScannedItems(
+            billItems,
+            imageData: receiptViewModel.scannedReceiptImageJPEGData,
+            assignedTo: selectedParticipants
+        )
+        showsReceiptFlow = false
     }
 
-    private func saveAndDismiss() {
+    var splitikDraft: String {
+        let title = viewModel.receiptTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title.isEmpty
+            ? "Помоги создать платёж и разделить расходы"
+            : "Помоги создать платёж «\(title)» и разделить расходы"
+    }
+
+    func saveAndDismiss() {
+        guard viewModel.canSave else { return }
         Task {
             if await viewModel.save() {
                 dismiss()
             }
         }
     }
-
-    private func dismissView() {
-        dismiss()
-    }
 }
-// swiftlint:enable type_body_length
 
-private enum BillEntryLayout {
-    static let bottomPanelReservedSpace: CGFloat = 228
+private enum ReceiptFlowStep: Hashable {
+    case preview
 }
 
 #Preview {
-    let deps = AppDependencies.preview
+    let dependencies = AppDependencies.preview
     BillEntryView(
         viewModel: BillViewModel(
             mode: .create(eventId: nil, scannedItems: [], receiptImageJPEGData: nil),
-            eventsRepository: deps.eventsRepository,
-            receiptsRepository: deps.receiptsRepository,
-            usersRepository: deps.usersRepository,
-            networkMonitor: deps.networkMonitor
+            eventsRepository: dependencies.eventsRepository,
+            receiptsRepository: dependencies.receiptsRepository,
+            usersRepository: dependencies.usersRepository,
+            networkMonitor: dependencies.networkMonitor
         )
     )
 }

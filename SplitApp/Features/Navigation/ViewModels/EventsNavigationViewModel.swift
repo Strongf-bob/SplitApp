@@ -89,8 +89,12 @@ final class EventsNavigationViewModel: ObservableObject {
         switch route {
         case .scanner:
             path.append(.scanner)
+        case .receiptPreview:
+            path.append(.receiptPreview)
         case .eventPicker:
             path.append(.eventPicker)
+        case .eventEditor:
+            path.append(.eventEditor)
         case .eventDetails:
             path.append(.eventDetails)
         case .inbox:

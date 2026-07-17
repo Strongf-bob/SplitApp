@@ -17,12 +17,15 @@ struct ProfileScreenView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             designProfileHeader(model: model)
                             contactCard(model: model)
-                            sectionTitle("ДАННЫЕ")
-                            dataActions
-                            logoutButton
+                            VStack(alignment: .leading, spacing: 20) {
+                                sectionTitle("ДАННЫЕ")
+                                dataActions
+                                logoutButton
+                            }
+                            .padding(.top, 300)
                         }
                         .padding(.horizontal, 20)
-                        .padding(.top, 18)
+                        .padding(.top, 22)
                         .padding(.bottom, 100)
                     }
                     .background(Color.white)
@@ -89,7 +92,7 @@ struct ProfileScreenView: View {
         }
         .foregroundStyle(.white)
         .padding(22)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 308, alignment: .topLeading)
         .background(Color(hex: "#7988B0"), in: RoundedRectangle(cornerRadius: 22))
     }
 

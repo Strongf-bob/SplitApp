@@ -14,6 +14,7 @@ final class AppTabCenter: ObservableObject {
 
     @Published private(set) var requestedTab: BottomTabID?
     @Published private(set) var isProfilePresented = false
+    @Published private(set) var isTabBarHidden = false
 
     func select(_ tab: BottomTabID) {
         requestedTab = tab
@@ -29,6 +30,10 @@ final class AppTabCenter: ObservableObject {
 
     func closeProfile() {
         isProfilePresented = false
+    }
+
+    func setTabBarHidden(_ isHidden: Bool) {
+        isTabBarHidden = isHidden
     }
 }
 

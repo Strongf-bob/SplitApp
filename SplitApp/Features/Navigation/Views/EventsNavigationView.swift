@@ -47,7 +47,7 @@ struct EventsNavigationView: View {
                     EventsCatalogView(
                         viewModel: viewModel.homeViewModel,
                         onEventTap: { viewModel.handle(.eventSelected($0)) },
-                        onCreateTap: { viewModel.handle(.currentEventTapped) }
+                        onCreateTap: { viewModel.handle(.createEventTapped) }
                     )
                 } else {
                     EventsHomeView(
@@ -64,6 +64,9 @@ struct EventsNavigationView: View {
                         },
                         onEventTap: {
                             viewModel.handle(.currentEventTapped)
+                        },
+                        onCreateEventTap: {
+                            viewModel.handle(.createEventTapped)
                         },
                         onInboxTap: {
                             viewModel.handle(.inboxTapped)
@@ -86,17 +89,38 @@ struct EventsNavigationView: View {
                     await viewModel.refreshData()
                 }
             }
+            .onChange(of: viewModel.path) { _, path in
+                AppTabCenter.shared.setTabBarHidden(!path.isEmpty)
+            }
             .navigationDestination(for: EventsNavigationRoute.self) { route in
                 switch route {
                 case .scanner:
                     CameraView(
                         viewModel: viewModel.scannerViewModel,
-                        onCapture: { viewModel.handle(.scannerCaptureCompleted) }
+                        onCapture: { viewModel.path.append(.receiptPreview) }
                     )
                     .navigationBarBackButtonHidden(true)
 
+                case .receiptPreview:
+                    ReceiptPreviewView(
+                        viewModel: viewModel.scannerViewModel,
+                        onClose: {
+                            if viewModel.path.last == .receiptPreview {
+                                viewModel.path.removeLast()
+                            }
+                        },
+                        onConfirm: { viewModel.handle(.scannerCaptureCompleted) }
+                    )
+
                 case .eventPicker:
                     EventPickerView(
+                        viewModel: viewModel.homeViewModel,
+                        friendsRepository: friendsRepository,
+                        eventsRepository: eventsRepository,
+                        onCreatePayment: { viewModel.createPayment(in: $0) }
+                    )
+                case .eventEditor:
+                    EventEditorView(
                         viewModel: viewModel.homeViewModel,
                         friendsRepository: friendsRepository,
                         eventsRepository: eventsRepository,
@@ -116,6 +140,7 @@ struct EventsNavigationView: View {
                             viewModel.handle(.receiptTapped(eventId: eventId, receiptId: billId))
                         },
                         onEventTap: { viewModel.handle(.currentEventTapped) },
+                        onCreateEventTap: { viewModel.handle(.createEventTapped) },
                         onInboxTap: { viewModel.handle(.inboxTapped) },
                         showsNavigationBar: true
                     )

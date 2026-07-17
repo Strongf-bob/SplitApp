@@ -26,8 +26,8 @@ struct SplitAppModalHeader: View {
             if let onPrimary {
                 circularButton(
                     systemImage: primarySystemImage,
-                    foreground: canPerformPrimary ? .white : AppTheme.textSecondary,
-                    background: canPerformPrimary ? AppTheme.pdfPrimaryBlue : AppTheme.disabledSurface,
+                    foreground: .white,
+                    background: AppTheme.pdfPrimaryBlue,
                     accessibilityLabel: "Продолжить",
                     action: onPrimary
                 )

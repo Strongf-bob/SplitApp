@@ -13,45 +13,44 @@ struct BottomTabBarView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            ForEach(configuration.items) { item in
-                item.makeView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(item.id)
+        ZStack {
+            TabView(selection: $selectedTab) {
+                ForEach(configuration.items) { item in
+                    item.makeView()
+                        .toolbar(.hidden, for: .tabBar)
+                        .tag(item.id)
+                }
+            }
+
+            if appTabCenter.isProfilePresented {
+                ZStack(alignment: .topTrailing) {
+                    configuration.makeProfileView()
+
+                    Button {
+                        appTabCenter.closeProfile()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .frame(width: 44, height: 44)
+                            .background(AppTheme.disabledSurface, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Закрыть профиль")
+                    .padding(.top, 8)
+                    .padding(.trailing, 16)
+                }
+                .transition(.opacity)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            PDFBottomTabBar(
-                items: configuration.items,
-                selectedTab: $selectedTab
-            )
-        }
-        .fullScreenCover(
-            isPresented: Binding(
-                get: { appTabCenter.isProfilePresented },
-                set: { isPresented in
-                    if !isPresented {
-                        appTabCenter.closeProfile()
-                    }
-                }
-            )
-        ) {
-            ZStack(alignment: .topTrailing) {
-                configuration.makeProfileView()
-
-                Button {
-                    appTabCenter.closeProfile()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Закрыть профиль")
-                .padding(.top, 8)
-                .padding(.trailing, 20)
+            if !appTabCenter.isTabBarHidden {
+                PDFBottomTabBar(
+                    items: configuration.items,
+                    selectedTab: $selectedTab,
+                    onSelect: { appTabCenter.closeProfile() }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .onAppear {
@@ -74,18 +73,21 @@ struct BottomTabBarView: View {
             selectedTab = tab
             appTabCenter.consume()
         }
+        .animation(.easeInOut(duration: 0.18), value: appTabCenter.isTabBarHidden)
     }
 }
 
 private struct PDFBottomTabBar: View {
     let items: [BottomTabItem]
     @Binding var selectedTab: BottomTabID
+    let onSelect: () -> Void
 
     var body: some View {
         HStack(spacing: 4) {
             ForEach(items) { item in
                 Button {
                     selectedTab = item.id
+                    onSelect()
                 } label: {
                     VStack(spacing: 5) {
                         Image(systemName: item.systemImage)
@@ -97,12 +99,12 @@ private struct PDFBottomTabBar: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
-                    .foregroundStyle(selectedTab == item.id ? Color.white : Color(hex: "#1F387C"))
+                    .foregroundStyle(selectedTab == item.id ? Color(hex: "#0088FF") : AppTheme.textPrimary)
                     .frame(maxWidth: .infinity, minHeight: 54)
                     .background {
                         if selectedTab == item.id {
                             RoundedRectangle(cornerRadius: 17, style: .continuous)
-                                .fill(Color(hex: "#1F387C"))
+                                .fill(Color(hex: "#EDEDED"))
                         }
                     }
                     .contentShape(Rectangle())
@@ -121,7 +123,7 @@ private struct PDFBottomTabBar: View {
         .shadow(color: Color.black.opacity(0.12), radius: 18, y: 8)
         .padding(.horizontal, 18)
         .padding(.top, 6)
-        .padding(.bottom, 4)
+        .padding(.bottom, -10)
     }
 }
 

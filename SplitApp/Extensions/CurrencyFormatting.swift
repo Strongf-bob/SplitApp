@@ -14,13 +14,13 @@ extension Double {
 
         if signed {
             if self > 0 {
-                return "+₽\(amount)"
+                return "+\(amount) ₽"
             }
             if self < 0 {
-                return "-₽\(amount)"
+                return "-\(amount) ₽"
             }
         }
 
-        return "₽\(amount)"
+        return "\(amount) ₽"
     }
 }

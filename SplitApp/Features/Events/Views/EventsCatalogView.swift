@@ -1,106 +1,94 @@
 import SwiftUI
 
 struct EventsCatalogView: View {
-    enum Filter: String, CaseIterable, Identifiable {
-        case invitations = "Приглашения"
-        case active = "Активные"
-        case completed = "Завершённые"
-
-        var id: Self { self }
-    }
-
     @ObservedObject var viewModel: EventsHomeViewModel
     let onEventTap: (EventListItem) -> Void
     let onCreateTap: () -> Void
-    @State private var filter: Filter = .active
 
     var body: some View {
         ZStack {
-            AppTheme.figmaHero.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
+
             VStack(spacing: 0) {
-                HStack {
-                    Text("События")
-                        .font(AppTypography.montserrat(.extraBold, size: 36, relativeTo: .largeTitle))
-                        .foregroundStyle(.white)
-                    Spacer()
-                    Button(action: onCreateTap) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background(Color(hex: "#4C6096"), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Добавить событие")
-                }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 18)
-                    .padding(.bottom, 20)
+                SplitAppHeader()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
-                VStack(spacing: 14) {
-                    Picker("Фильтр событий", selection: $filter) {
-                        ForEach(Filter.allCases) { filter in
-                            Text(filter.rawValue).tag(filter)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                SplitAppActionButton(
+                    title: "Добавить событие",
+                    systemImage: "plus",
+                    action: onCreateTap
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 23)
 
-                    ScrollView(showsIndicators: false) {
-                        LazyVStack(spacing: 10) {
-                            if filteredEvents.isEmpty {
-                                Text(emptyText)
-                                    .font(.body)
-                                    .foregroundStyle(AppTheme.textSecondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(16)
-                            } else {
-                                ForEach(filteredEvents) { event in
-                                    Button {
-                                        onEventTap(event)
-                                    } label: {
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            Text(event.title)
-                                                .font(AppTypography.montserrat(.semibold, size: 20, relativeTo: .headline))
-                                                .foregroundStyle(.white)
-                                            Text(event.subtitle)
-                                                .font(AppTypography.montserrat(.medium, size: 16, relativeTo: .subheadline))
-                                                .foregroundStyle(.white.opacity(0.56))
-                                        }
-                                        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
-                                        .padding(.horizontal, 16)
-                                        .background(Color(hex: "#4C6096"), in: RoundedRectangle(cornerRadius: 16))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 10) {
+                        if !viewModel.isLoaded {
+                            ProgressView("Загружаем события...")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 32)
+                        } else if viewModel.latestEvents.isEmpty {
+                            ContentUnavailableView(
+                                "Событий пока нет",
+                                systemImage: "calendar.badge.plus",
+                                description: Text("Создайте первое событие для совместных расходов.")
+                            )
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .padding(.top, 24)
+                        } else {
+                            ForEach(viewModel.latestEvents) { event in
+                                eventButton(event)
                             }
                         }
+
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 8)
+                        }
+
+                        Color.clear.frame(height: 86)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 19)
                 }
-                .padding(10)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(Color.white, in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
-                .background(Color.white.ignoresSafeArea(edges: .bottom))
+                .refreshable { await viewModel.refreshData() }
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
     }
+}
 
-    private var filteredEvents: [EventListItem] {
-        switch filter {
-        case .invitations:
-            []
-        case .active:
-            viewModel.latestEvents.filter { !$0.isClosed }
-        case .completed:
-            viewModel.latestEvents.filter(\.isClosed)
-        }
-    }
+private extension EventsCatalogView {
+    func eventButton(_ event: EventListItem) -> some View {
+        Button { onEventTap(event) } label: {
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 10) {
+                    Text(event.title)
+                        .font(AppTypography.montserrat(.semibold, size: 22, relativeTo: .title3))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
 
-    private var emptyText: String {
-        switch filter {
-        case .invitations: "Нет приглашений"
-        case .active: "Нет активных событий"
-        case .completed: "Нет завершённых событий"
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                Text(event.isClosed ? "Закрыто" : abs(event.amount).rubleText(signed: false, minimumFractionDigits: 0))
+                    .font(AppTypography.montserrat(.medium, size: 20, relativeTo: .title3))
+                    .foregroundStyle(AppTheme.pdfTertiaryBlue)
+                    .monospacedDigit()
+            }
+            .padding(.horizontal, 22)
+            .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+            .background(AppTheme.pdfSecondaryBlue, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Открыть событие \(event.title)")
     }
 }

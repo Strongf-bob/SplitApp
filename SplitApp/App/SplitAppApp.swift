@@ -103,6 +103,24 @@ struct SplitAppApp: App {
     }
 
     private func bootstrap() async {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-splitapp-ui-review") {
+            await MainActor.run {
+                CurrentUserStore.shared.updateFromAuth(
+                    User(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                        name: "Алексей",
+                        phoneNumber: "+7 905 469-77-10",
+                        email: "alexey@example.com"
+                    )
+                )
+                appState.isLoggedIn = true
+                appState.isLoading = false
+            }
+            return
+        }
+#endif
+
         let storage = KeychainStorage()
 
         guard storage.get("refresh_token") != nil else {

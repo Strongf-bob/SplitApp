@@ -2,7 +2,9 @@ import Foundation
 
 enum EventsNavigationRoute: Hashable {
     case scanner
+    case receiptPreview
     case eventPicker
+    case eventEditor
     case eventDetails
     case inbox
 }
@@ -35,6 +37,7 @@ enum EventsNavigationAction: Equatable {
     case addButtonTapped
     case scannerCaptureCompleted
     case currentEventTapped
+    case createEventTapped
     case eventSelected(EventListItem)
     case inboxTapped
     case receiptTapped(eventId: UUID, receiptId: UUID)
@@ -55,6 +58,8 @@ struct EventsNavigationRules {
             scanButtonRoute
         case .currentEventTapped:
             .eventPicker
+        case .createEventTapped:
+            .eventEditor
         case .inboxTapped:
             .inbox
         case .addButtonTapped, .scannerCaptureCompleted, .eventSelected, .receiptTapped:
