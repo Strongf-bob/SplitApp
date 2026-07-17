@@ -2,6 +2,8 @@ import SwiftUI
 
 struct EventsHomeView: View {
     @ObservedObject var viewModel: EventsHomeViewModel
+    @ObservedObject var networkMonitor: NetworkMonitor
+    let hasUnreadInvitations: Bool
 
     let onScanTap: () -> Void
     let onAddTap: () -> Void
@@ -46,7 +48,10 @@ struct EventsHomeView: View {
                 AddButton(action: onAddTap)
                     .disabled(!viewModel.canMutateCurrentEventReceipts)
                     .opacity(viewModel.canMutateCurrentEventReceipts ? 1 : 0.45)
-                InboxButton(action: onInboxTap)
+                InboxButton(
+                    action: onInboxTap,
+                    showsUnreadNotification: !networkMonitor.isConnected || hasUnreadInvitations
+                )
             }
         }
         .padding(.horizontal, 20)
@@ -277,15 +282,29 @@ private struct AddButton: View {
 
 private struct InboxButton: View {
     let action: () -> Void
+    let showsUnreadNotification: Bool
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Image(systemName: "tray")
-                    .font(.title2.weight(.semibold))
-                    .frame(width: 62, height: 62)
-                    .foregroundStyle(.white)
-                    .background(.black.opacity(0.90), in: Circle())
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "tray")
+                        .font(.title2.weight(.semibold))
+                        .frame(width: 62, height: 62)
+                        .foregroundStyle(.white)
+                        .background(.black.opacity(0.90), in: Circle())
+
+                    if showsUnreadNotification {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 12, height: 12)
+                            .overlay {
+                                Circle()
+                                    .stroke(.white, lineWidth: 2)
+                            }
+                            .offset(x: 2, y: -2)
+                    }
+                }
                 Text("Входящие")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.white)
@@ -294,6 +313,7 @@ private struct InboxButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Открыть входящие уведомления")
+        .accessibilityValue(showsUnreadNotification ? "Есть непрочитанное уведомление" : "")
     }
 }
 
@@ -302,6 +322,8 @@ private struct InboxButton: View {
         viewModel: EventsHomeViewModel(
             service: EventManagementService(eventsRepository: EventsDataRepository())
         ),
+        networkMonitor: .shared,
+        hasUnreadInvitations: false,
         onScanTap: {},
         onAddTap: {},
         onBillTap: nil,

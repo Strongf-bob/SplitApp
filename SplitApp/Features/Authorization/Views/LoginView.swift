@@ -7,20 +7,21 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.figmaHero
-                .ignoresSafeArea()
+            Color(hex: "#1F387C").ignoresSafeArea()
             VStack(spacing: 0) {
                 Spacer()
 
+                Image("asset-0da481f91365")
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .frame(width: 144, height: 147)
+                    .accessibilityHidden(true)
+
                 Text("Split.")
-                    .font(.system(size: 64, weight: .black, design: .rounded))
+                    .font(AppTypography.montserrat(.extraBold, size: 88, relativeTo: .largeTitle))
                     .foregroundStyle(.white)
                     .accessibilityLabel("SplitApp")
-
-                Text("Делите расходы вместе")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.78))
-                    .padding(.top, 8)
 
                 Spacer()
 
@@ -45,13 +46,13 @@ struct LoginView: View {
                 .opacity(isAuthorizing ? 0.7 : 1)
 
                 Text("Продолжая, вы соглашаетесь с условиями сервиса")
-                    .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.68))
+                    .font(AppTypography.montserrat(.bold, size: 12, relativeTo: .footnote))
+                    .foregroundStyle(Color(hex: "#7988B0"))
                     .multilineTextAlignment(.center)
                     .padding(.top, 16)
 
                 Color.clear
-                    .frame(height: 32)
+                    .frame(height: 22)
             }
             .padding(.horizontal, 24)
         }

@@ -25,7 +25,7 @@ struct ProfileScreenView: View {
             } else if let model = viewModel.profileModel {
                 VStack(spacing: 0) {
                     Text("Профиль")
-                        .font(.system(size: 36, weight: .black, design: .rounded))
+                        .font(AppTypography.montserrat(.extraBold, size: 36, relativeTo: .largeTitle))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 24)

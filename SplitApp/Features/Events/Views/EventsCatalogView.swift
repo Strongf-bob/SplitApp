@@ -18,7 +18,7 @@ struct EventsCatalogView: View {
             AppTheme.figmaHero.ignoresSafeArea()
             VStack(spacing: 0) {
                 Text("События")
-                    .font(.system(size: 36, weight: .black, design: .rounded))
+                    .font(AppTypography.montserrat(.extraBold, size: 36, relativeTo: .largeTitle))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 24)

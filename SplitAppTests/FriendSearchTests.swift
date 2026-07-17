@@ -22,6 +22,13 @@ final class FriendSearchTests: XCTestCase {
         XCTAssertEqual(endpoint.queryItems, [URLQueryItem(name: "q", value: "+79054697710")])
     }
 
+    func testAirDropInviteRoundTripsSenderPhone() throws {
+        let url = try XCTUnwrap(FriendInviteLink.make(phone: "+7 (905) 469-77-10"))
+
+        XCTAssertEqual(url.absoluteString, "splitapp://friends/add?phone=+79054697710")
+        XCTAssertEqual(FriendInviteLink.phone(from: url), "+79054697710")
+    }
+
     func testUsersRepositorySearchesRegisteredUser() async throws {
         let userID = UUID()
         FriendSearchURLProtocol.handler = { request in

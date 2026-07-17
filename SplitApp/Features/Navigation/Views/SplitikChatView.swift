@@ -71,19 +71,16 @@ struct SplitikChatView: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "sparkles")
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(AppTheme.accent)
-                .frame(width: 72, height: 72)
-                .background(AppTheme.inputBackground, in: Circle())
+            Image("asset-0da481f91365")
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .frame(width: 108, height: 110)
                 .accessibilityHidden(true)
             VStack(spacing: 6) {
-                Text("Привет, я Сплитик")
-                    .font(.title3.weight(.bold))
+                Text("Привет, я Сплитик.\nЧем могу помочь?")
+                    .font(AppTypography.robotoMedium(size: 24, relativeTo: .title3))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text("Помогу разобраться с расходами, чеками и долгами.")
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
             }
             .multilineTextAlignment(.center)
             Spacer()

@@ -51,14 +51,6 @@ struct SplitAppApp: App {
                         ContentView(dependencies: dependencies, appState: appState)
                     } else {
                         LoginView(viewModel: viewModel)
-                            .onOpenURL { url in
-                                do {
-                                    try YandexLoginSDK.shared.handleOpenURL(url)
-                                    print("URL успешно передан в SDK")
-                                } catch {
-                                    print("SDK не смог обработать URL: \(error)")
-                                }
-                            }
                     }
                 }
 
@@ -81,6 +73,20 @@ struct SplitAppApp: App {
             }
             .environmentObject(appState)
             .preferredColorScheme(AppAppearance.preferredColorScheme)
+            .onOpenURL(perform: handleOpenURL)
+        }
+    }
+
+    private func handleOpenURL(_ url: URL) {
+        if FriendInviteLink.phone(from: url) != nil {
+            FriendInviteLinkCenter.shared.handle(url)
+            return
+        }
+
+        do {
+            try YandexLoginSDK.shared.handleOpenURL(url)
+        } catch {
+            print("Не удалось обработать входящую ссылку: \(error)")
         }
     }
 

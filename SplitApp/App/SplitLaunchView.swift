@@ -11,19 +11,27 @@ struct SplitLaunchView: View {
             AppTheme.figmaHero
                 .ignoresSafeArea()
 
-            HStack(spacing: 0) {
-                ForEach(Array(title.enumerated()), id: \.offset) { index, letter in
-                    Text(String(letter))
-                        .font(.system(size: 54, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .opacity(isTitleVisible ? 1 : 0)
-                        .offset(y: isTitleVisible ? 0 : 12)
-                        .animation(
-                            reduceMotion
-                                ? nil
-                                : .easeOut(duration: 0.16).delay(Double(index) * 0.045),
-                            value: isTitleVisible
-                        )
+            VStack(spacing: 0) {
+                Image("asset-0da481f91365")
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .frame(width: 108, height: 110)
+
+                HStack(spacing: 0) {
+                    ForEach(Array(title.enumerated()), id: \.offset) { index, letter in
+                        Text(String(letter))
+                            .font(AppTypography.montserrat(.extraBold, size: 54, relativeTo: .largeTitle))
+                            .foregroundStyle(.white)
+                            .opacity(isTitleVisible ? 1 : 0)
+                            .offset(y: isTitleVisible ? 0 : 12)
+                            .animation(
+                                reduceMotion
+                                    ? nil
+                                    : .easeOut(duration: 0.16).delay(Double(index) * 0.045),
+                                value: isTitleVisible
+                            )
+                    }
                 }
             }
             .accessibilityLabel("Split")

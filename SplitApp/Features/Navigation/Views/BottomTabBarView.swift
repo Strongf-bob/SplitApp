@@ -3,6 +3,7 @@ import SwiftUI
 struct BottomTabBarView: View {
     private let configuration: BottomTabConfiguration
     @State private var selectedTab: BottomTabID
+    @ObservedObject private var friendInviteCenter = FriendInviteLinkCenter.shared
 
     init(configuration: BottomTabConfiguration) {
         self.configuration = configuration
@@ -20,6 +21,11 @@ struct BottomTabBarView: View {
             }
         }
         .tint(AppTheme.accent)
+        .onChange(of: friendInviteCenter.pendingPhone) { _, phone in
+            if phone != nil {
+                selectedTab = .friends
+            }
+        }
     }
 }
 

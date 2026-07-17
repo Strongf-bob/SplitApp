@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A11F0A012F90000100A11F0A /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = A11F0A002F90000100A11F0A /* Fonts */; };
 		BF5218AD2F853A4400877E75 /* YandexLoginSDK in Frameworks */ = {isa = PBXBuildFile; productRef = BF5218AC2F853A4400877E75 /* YandexLoginSDK */; };
 		BF5218B02F85423100877E75 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = BF5218AF2F85423100877E75 /* KeychainSwift */; };
 /* End PBXBuildFile section */
@@ -29,6 +30,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A11F0A002F90000100A11F0A /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = SplitApp/Resources/Fonts; sourceTree = "<group>"; };
 		BFD5EB572F7C10DD00877F4C /* SplitApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SplitApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BFD5EB692F7C10E100877F4C /* SplitAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SplitAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BFD5EB732F7C10E100877F4C /* SplitAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SplitAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -102,6 +104,7 @@
 		BFD5EB4E2F7C10DD00877F4C = {
 			isa = PBXGroup;
 			children = (
+				A11F0A002F90000100A11F0A /* Fonts */,
 				BFD5EB592F7C10DD00877F4C /* SplitApp */,
 				BFD5EB6C2F7C10E100877F4C /* SplitAppTests */,
 				BFD5EB762F7C10E100877F4C /* SplitAppUITests */,
@@ -247,6 +250,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A11F0A012F90000100A11F0A /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
