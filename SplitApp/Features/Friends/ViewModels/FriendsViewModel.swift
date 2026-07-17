@@ -9,6 +9,18 @@ class FriendsViewModel: ObservableObject {
     @Published private(set) var incomingRequests: [Friendship] = []
     @Published private(set) var outgoingRequests: [Friendship] = []
     @Published var searchText: String = ""
+    @Published var friendPhone: String = "" {
+        didSet {
+            if friendPhone != oldValue {
+                foundUser = nil
+                friendSearchMessage = nil
+            }
+        }
+    }
+    @Published private(set) var foundUser: User?
+    @Published private(set) var isSearchingFriend = false
+    @Published private(set) var isSendingFriendRequest = false
+    @Published private(set) var friendSearchMessage: String?
     @Published private(set) var isLoading = false
     @Published private(set) var settlingDebtIds: Set<UUID> = []
     @Published private(set) var updatingFriendshipIds: Set<UUID> = []
@@ -161,6 +173,50 @@ class FriendsViewModel: ObservableObject {
         } catch {
             errorMessage = "Не удалось принять приглашение. Проверьте интернет и попробуйте снова."
             return false
+        }
+    }
+
+    func searchRegisteredUser() async {
+        let normalizedPhone = SearchUsersEndpoint.normalizePhone(friendPhone)
+        guard normalizedPhone.count >= 11 else {
+            foundUser = nil
+            friendSearchMessage = "Введите полный номер телефона"
+            return
+        }
+
+        isSearchingFriend = true
+        foundUser = nil
+        friendSearchMessage = nil
+        defer { isSearchingFriend = false }
+
+        do {
+            let currentUserId = currentUserProvider()?.id
+            foundUser = try await usersRepository.searchUsers(query: friendPhone)
+                .first { $0.id != currentUserId }
+            if foundUser == nil {
+                friendSearchMessage = "Пользователь с таким номером не найден"
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            friendSearchMessage = "Не удалось выполнить поиск. Проверьте интернет и попробуйте снова."
+        }
+    }
+
+    func sendFriendRequest() async {
+        guard let foundUser, !isSendingFriendRequest else { return }
+        isSendingFriendRequest = true
+        friendSearchMessage = nil
+        defer { isSendingFriendRequest = false }
+
+        do {
+            _ = try await friendsRepository.createFriendRequest(userId: foundUser.id)
+            self.foundUser = nil
+            friendPhone = ""
+            friendSearchMessage = "Заявка отправлена"
+            await reload()
+        } catch {
+            friendSearchMessage = "Не удалось отправить заявку. Возможно, она уже существует."
         }
     }
 

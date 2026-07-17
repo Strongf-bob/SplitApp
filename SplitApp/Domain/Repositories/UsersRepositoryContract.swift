@@ -5,4 +5,5 @@ protocol UsersRepository {
     func listUsers() async throws -> [User]
     /// Returns cached users only.
     func getCachedUsers() async throws -> [User]
+    func searchUsers(query: String) async throws -> [User]
 }

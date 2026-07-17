@@ -35,6 +35,22 @@ final class UsersDataRepository: UsersRepository {
         }
     }
 
+    func searchUsers(query: String) async throws -> [User] {
+        var offset = 0
+        var users: [User] = []
+
+        while true {
+            let page: PageResponse<UserDTO> = try await apiClient.request(
+                endpoint: SearchUsersEndpoint(query: query, offset: offset)
+            )
+            users += page.items.map(UserMapper.mapToDomain)
+            guard page.hasMore, !page.items.isEmpty else {
+                return users
+            }
+            offset = page.nextOffset
+        }
+    }
+
     private func upsertUsers(
         _ dtos: [UserDTO],
         in context: NSManagedObjectContext

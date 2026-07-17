@@ -5,6 +5,7 @@ struct FriendsView: View {
     @ObservedObject private var networkMonitor: NetworkMonitor
     @ObservedObject private var inviteStore: FriendInviteStore
     @State private var shareItem: ShareItem?
+    @State private var isAddingFriend = false
 
     init(
         friendsRepository: any FriendsRepository,
@@ -72,6 +73,9 @@ struct FriendsView: View {
                 }
             )
         }
+        .sheet(isPresented: $isAddingFriend) {
+            AddFriendView(viewModel: viewModel)
+        }
     }
 }
 
@@ -100,9 +104,7 @@ private extension FriendsView {
 
     var header: some View {
         FriendsNavigationHeader {
-            Task {
-                await viewModel.createFriendInvite()
-            }
+            isAddingFriend = true
         }
             .onTapGesture {
                 hideKeyboard()

@@ -24,6 +24,14 @@ final class FriendsDataRepository: FriendsRepository {
         }
     }
 
+    func createFriendRequest(userId: UUID) async throws -> Friendship {
+        let dto: FriendshipDTO = try await apiClient.request(
+            endpoint: CreateFriendRequestEndpoint(),
+            body: CreateFriendRequest(userId: userId)
+        )
+        return FriendshipMapper.mapToDomain(dto: dto)
+    }
+
     func acceptFriendship(id: UUID) async throws -> Friendship {
         let dto: FriendshipDTO = try await apiClient.request(
             endpoint: AcceptFriendshipEndpoint(id: id)

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FriendsNavigationHeader: View {
-    let onInvite: () -> Void
+    let onAddFriend: () -> Void
 
     var body: some View {
         HStack(alignment: .center) {
@@ -11,13 +11,15 @@ struct FriendsNavigationHeader: View {
 
             Spacer()
 
-            Button(action: onInvite) {
-                Image(systemName: "airdrop")
-                    .font(.system(size: 24, weight: .semibold))
-                    .frame(width: 44, height: 44)
+            Button(action: onAddFriend) {
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 46, height: 46)
+                    .background(.white.opacity(0.16), in: Circle())
             }
-            .foregroundStyle(.white)
-            .accessibilityLabel("Пригласить друга через AirDrop")
+            .buttonStyle(.plain)
+            .accessibilityLabel("Добавить друга")
         }
         .padding(.horizontal, 20)
         .padding(.top, 18)

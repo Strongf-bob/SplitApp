@@ -125,6 +125,65 @@ final class FriendsViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.friends.map(\.id), [recipient.id])
     }
 
+    func testSearchRegisteredUserFindsExactPhoneMatch() async {
+        let currentUserId = UUID()
+        let alice = user(name: "Алиса")
+        let usersRepository = UsersRepositorySpy(users: [alice])
+        let viewModel = makeViewModel(
+            currentUserId: currentUserId,
+            friendsRepository: FriendsRepositorySpy(friendships: []),
+            usersRepository: usersRepository
+        )
+        viewModel.friendPhone = "+7 (900) 000-00-00"
+
+        await viewModel.searchRegisteredUser()
+
+        XCTAssertEqual(usersRepository.searchQueries, ["+7 (900) 000-00-00"])
+        XCTAssertEqual(viewModel.foundUser?.id, alice.id)
+        XCTAssertNil(viewModel.friendSearchMessage)
+    }
+
+    func testSendFriendRequestUsesFoundUserAndClearsSearch() async {
+        let currentUserId = UUID()
+        let alice = user(name: "Алиса")
+        let repository = FriendsRepositorySpy(friendships: [])
+        repository.createdRequest = friendship(
+            requesterId: currentUserId,
+            addresseeId: alice.id,
+            status: .requested,
+            peer: alice
+        )
+        let viewModel = makeViewModel(
+            currentUserId: currentUserId,
+            friendsRepository: repository,
+            usersRepository: UsersRepositorySpy(users: [alice])
+        )
+        viewModel.friendPhone = "+79000000000"
+        await viewModel.searchRegisteredUser()
+
+        await viewModel.sendFriendRequest()
+
+        XCTAssertEqual(repository.createdUserIDs, [alice.id])
+        XCTAssertNil(viewModel.foundUser)
+        XCTAssertEqual(viewModel.friendPhone, "")
+        XCTAssertEqual(viewModel.friendSearchMessage, "Заявка отправлена")
+    }
+
+    private func makeViewModel(
+        currentUserId: UUID,
+        friendsRepository: FriendsRepositorySpy,
+        usersRepository: UsersRepositorySpy
+    ) -> FriendsViewModel {
+        FriendsViewModel(
+            friendsRepository: friendsRepository,
+            usersRepository: usersRepository,
+            balancesRepository: BalancesRepositorySpy(balances: []),
+            paymentsRepository: PaymentsRepositorySpy(),
+            activeEventRepository: ActiveEventRepositorySpy(eventId: nil),
+            currentUserProvider: { self.currentUser(id: currentUserId) }
+        )
+    }
+
     private func user(name: String) -> User {
         User(id: UUID(), name: name, phoneNumber: "79000000000")
     }
@@ -159,12 +218,14 @@ final class FriendsViewModelTests: XCTestCase {
 
 private final class FriendsRepositorySpy: FriendsRepository {
     var friendships: [Friendship]
+    var createdRequest: Friendship?
     private(set) var acceptedIDs: [UUID] = []
     var createdInvite: FriendInvite?
     var preview: FriendInvitePreview?
     var acceptedInviteFriendship: Friendship?
     private(set) var previewedTokens: [String] = []
     private(set) var acceptedInviteTokens: [String] = []
+    private(set) var createdUserIDs: [UUID] = []
 
     init(friendships: [Friendship]) {
         self.friendships = friendships
@@ -172,6 +233,13 @@ private final class FriendsRepositorySpy: FriendsRepository {
 
     func listFriendships() async throws -> [Friendship] {
         friendships
+    }
+
+    func createFriendRequest(userId: UUID) async throws -> Friendship {
+        createdUserIDs.append(userId)
+        guard let createdRequest else { throw TestError.notImplemented }
+        friendships.append(createdRequest)
+        return createdRequest
     }
 
     func acceptFriendship(id: UUID) async throws -> Friendship {
@@ -217,12 +285,17 @@ private final class FriendsRepositorySpy: FriendsRepository {
 
 private final class UsersRepositorySpy: UsersRepository {
     let users: [User]
+    private(set) var searchQueries: [String] = []
 
     init(users: [User]) {
         self.users = users
     }
 
     func listUsers() async throws -> [User] { users }
+    func searchUsers(query: String) async throws -> [User] {
+        searchQueries.append(query)
+        return users
+    }
     func getCachedUsers() async throws -> [User] { users }
 }
 
