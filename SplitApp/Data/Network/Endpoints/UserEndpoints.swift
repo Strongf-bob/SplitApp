@@ -24,6 +24,47 @@ struct CurrentUserEndpoint: Endpoint {
     let method: HTTPMethod = .GET
 }
 
+struct SearchUsersEndpoint: Endpoint {
+    let query: String
+    let limit: Int
+    let offset: Int
+
+    init(query: String, limit: Int = 20, offset: Int = 0) {
+        self.query = query
+        self.limit = limit
+        self.offset = offset
+    }
+
+    let path = "/api/users/search"
+    let method: HTTPMethod = .GET
+
+    var queryItems: [URLQueryItem]? {
+        var items = [URLQueryItem(name: "q", value: Self.normalizePhone(query))]
+        if limit != 20 {
+            items.append(URLQueryItem(name: "limit", value: String(limit)))
+        }
+        if offset != 0 {
+            items.append(URLQueryItem(name: "offset", value: String(offset)))
+        }
+        return items
+    }
+
+    static func normalizePhone(_ input: String) -> String {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = trimmed.filter(\.isNumber)
+        if digits.count == 11, digits.hasPrefix("8") {
+            return "+7" + digits.dropFirst()
+        }
+        if digits.count == 11, digits.hasPrefix("7") {
+            return "+" + digits
+        }
+        if digits.count == 10 {
+            return "+7" + digits
+        }
+        return trimmed.hasPrefix("+") ? "+" + digits : digits
+    }
+}
+
 struct AuthUserEndpoint: Endpoint {
     let path = "/api/login"
     let method: HTTPMethod = .POST

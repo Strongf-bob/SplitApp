@@ -3,6 +3,7 @@ import SwiftUI
 struct FriendsView: View {
     @StateObject private var viewModel: FriendsViewModel
     @ObservedObject private var networkMonitor: NetworkMonitor
+    @State private var isAddingFriend = false
 
     init(
         friendsRepository: any FriendsRepository,
@@ -33,6 +34,9 @@ struct FriendsView: View {
         .task {
             await viewModel.load()
         }
+        .sheet(isPresented: $isAddingFriend) {
+            AddFriendView(viewModel: viewModel)
+        }
     }
 }
 
@@ -60,7 +64,9 @@ private extension FriendsView {
     }
 
     var header: some View {
-        FriendsNavigationHeader()
+        FriendsNavigationHeader {
+            isAddingFriend = true
+        }
             .onTapGesture {
                 hideKeyboard()
             }

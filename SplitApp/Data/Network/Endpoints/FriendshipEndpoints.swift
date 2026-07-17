@@ -20,6 +20,19 @@ struct ListFriendshipsEndpoint: Endpoint {
     }
 }
 
+struct CreateFriendRequestEndpoint: Endpoint {
+    let path = "/api/friends"
+    let method: HTTPMethod = .POST
+}
+
+struct CreateFriendRequest: Encodable {
+    let userId: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+    }
+}
+
 struct AcceptFriendshipEndpoint: Endpoint {
     let id: UUID
     var path: String { "/api/friends/\(id.uuidString)/accept" }
