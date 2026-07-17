@@ -12,6 +12,8 @@ class FriendsViewModel: ObservableObject {
     @Published var friendPhone: String = "" {
         didSet {
             if friendPhone != oldValue {
+                activeFriendSearchID = nil
+                isSearchingFriend = false
                 foundUser = nil
                 friendSearchMessage = nil
             }
@@ -38,6 +40,7 @@ class FriendsViewModel: ObservableObject {
     private let activeEventRepository: any ActiveEventRepository
     private let currentUserProvider: @MainActor () -> CurrentUser?
     private var hasLoaded = false
+    private var activeFriendSearchID: UUID?
 
     var activeDebts: [FriendDebt] {
         debts.filter { $0.amount > 0 }
@@ -177,28 +180,43 @@ class FriendsViewModel: ObservableObject {
     }
 
     func searchRegisteredUser() async {
-        let normalizedPhone = SearchUsersEndpoint.normalizePhone(friendPhone)
+        let query = friendPhone
+        let normalizedPhone = SearchUsersEndpoint.normalizePhone(query)
         guard normalizedPhone.count >= 11 else {
             foundUser = nil
             friendSearchMessage = "Введите полный номер телефона"
             return
         }
 
+        let searchID = UUID()
+        activeFriendSearchID = searchID
         isSearchingFriend = true
         foundUser = nil
         friendSearchMessage = nil
-        defer { isSearchingFriend = false }
+        defer {
+            if activeFriendSearchID == searchID {
+                activeFriendSearchID = nil
+                isSearchingFriend = false
+            }
+        }
 
         do {
             let currentUserId = currentUserProvider()?.id
-            foundUser = try await usersRepository.searchUsers(query: friendPhone)
+            let result = try await usersRepository.searchUsers(query: query)
                 .first { $0.id != currentUserId }
+            guard activeFriendSearchID == searchID,
+                  SearchUsersEndpoint.normalizePhone(friendPhone) == normalizedPhone
+            else {
+                return
+            }
+            foundUser = result
             if foundUser == nil {
                 friendSearchMessage = "Пользователь с таким номером не найден"
             }
         } catch is CancellationError {
             return
         } catch {
+            guard activeFriendSearchID == searchID else { return }
             friendSearchMessage = "Не удалось выполнить поиск. Проверьте интернет и попробуйте снова."
         }
     }

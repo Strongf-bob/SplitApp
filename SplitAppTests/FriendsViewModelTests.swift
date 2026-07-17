@@ -143,6 +143,35 @@ final class FriendsViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.friendSearchMessage)
     }
 
+    func testSearchRegisteredUserIgnoresAStaleResponseAfterPhoneChanges() async {
+        let currentUserId = UUID()
+        let alice = User(id: UUID(), name: "Алиса", phoneNumber: "79000000001")
+        let boris = User(id: UUID(), name: "Борис", phoneNumber: "79000000002")
+        let usersRepository = UsersRepositorySpy(
+            users: [],
+            searchResults: [
+                "+79000000001": [alice],
+                "+79000000002": [boris]
+            ],
+            searchDelays: ["+79000000001": 100_000_000]
+        )
+        let viewModel = makeViewModel(
+            currentUserId: currentUserId,
+            friendsRepository: FriendsRepositorySpy(friendships: []),
+            usersRepository: usersRepository
+        )
+
+        viewModel.friendPhone = "+79000000001"
+        let staleSearch = Task { await viewModel.searchRegisteredUser() }
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        viewModel.friendPhone = "+79000000002"
+        await viewModel.searchRegisteredUser()
+        await staleSearch.value
+
+        XCTAssertEqual(viewModel.friendPhone, "+79000000002")
+        XCTAssertEqual(viewModel.foundUser?.id, boris.id)
+    }
+
     func testSendFriendRequestUsesFoundUserAndClearsSearch() async {
         let currentUserId = UUID()
         let alice = user(name: "Алиса")
@@ -285,16 +314,27 @@ private final class FriendsRepositorySpy: FriendsRepository {
 
 private final class UsersRepositorySpy: UsersRepository {
     let users: [User]
+    let searchResults: [String: [User]]
+    let searchDelays: [String: UInt64]
     private(set) var searchQueries: [String] = []
 
-    init(users: [User]) {
+    init(
+        users: [User],
+        searchResults: [String: [User]] = [:],
+        searchDelays: [String: UInt64] = [:]
+    ) {
         self.users = users
+        self.searchResults = searchResults
+        self.searchDelays = searchDelays
     }
 
     func listUsers() async throws -> [User] { users }
     func searchUsers(query: String) async throws -> [User] {
         searchQueries.append(query)
-        return users
+        if let delay = searchDelays[query] {
+            try await Task.sleep(nanoseconds: delay)
+        }
+        return searchResults[query] ?? users
     }
     func getCachedUsers() async throws -> [User] { users }
 }
