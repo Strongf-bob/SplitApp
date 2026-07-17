@@ -31,11 +31,11 @@ private extension AddFriendView {
     var nameField: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Имя")
-                .font(.system(size: 21, weight: .medium))
+                .font(AppTypography.montserrat(.medium, size: 21, relativeTo: .title3))
                 .foregroundStyle(AppTheme.textPrimary)
 
             Text(viewModel.foundUser?.name ?? "Найдётся по номеру")
-                .font(.system(size: 18, weight: .regular))
+                .font(AppTypography.montserrat(size: 18))
                 .foregroundStyle(viewModel.foundUser == nil ? AppTheme.textTertiary : AppTheme.textPrimary)
                 .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -50,11 +50,11 @@ private extension AddFriendView {
     var phoneField: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Введите номер телефона")
-                .font(.system(size: 21, weight: .medium))
+                .font(AppTypography.montserrat(.medium, size: 21, relativeTo: .title3))
                 .foregroundStyle(AppTheme.textPrimary)
 
             TextField("+7", text: $viewModel.friendPhone)
-                .font(.system(size: 18, weight: .regular))
+                .font(AppTypography.montserrat(size: 18))
                 .foregroundStyle(AppTheme.textPrimary)
                 .keyboardType(.phonePad)
                 .textContentType(.telephoneNumber)
@@ -77,7 +77,7 @@ private extension AddFriendView {
                     ProgressView().tint(.white)
                 } else {
                     Text(viewModel.foundUser == nil ? "Найти друга" : "Добавить друга")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(AppTypography.montserrat(.medium, size: 20, relativeTo: .headline))
                 }
             }
             .foregroundStyle(.white)
@@ -98,7 +98,7 @@ private extension AddFriendView {
                 message,
                 systemImage: message == "Заявка отправлена" ? "checkmark.circle.fill" : "info.circle"
             )
-            .font(.system(size: 15, weight: .medium))
+            .font(AppTypography.montserrat(.medium, size: 15, relativeTo: .subheadline))
             .foregroundStyle(message == "Заявка отправлена" ? Color.green : AppTheme.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
         }

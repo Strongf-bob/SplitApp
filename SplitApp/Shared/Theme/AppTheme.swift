@@ -136,9 +136,9 @@ enum AppTheme {
     static let paddingMedium: CGFloat = 16
     static let paddingLarge: CGFloat = 20
 
-    static let fontHeader: Font = .headline.weight(.semibold)
-    static let fontBody: Font = .body
-    static let fontBodyBold: Font = .body.weight(.semibold)
-    static let fontTitle: Font = .title3.weight(.bold)
-    static let fontLargeTitle: Font = .largeTitle.weight(.bold)
+    static let fontHeader = AppTypography.montserrat(.semibold, size: 17, relativeTo: .headline)
+    static let fontBody = AppTypography.montserrat(size: 17, relativeTo: .body)
+    static let fontBodyBold = AppTypography.montserrat(.semibold, size: 17, relativeTo: .body)
+    static let fontTitle = AppTypography.montserrat(.bold, size: 20, relativeTo: .title3)
+    static let fontLargeTitle = AppTypography.montserrat(.bold, size: 34, relativeTo: .largeTitle)
 }

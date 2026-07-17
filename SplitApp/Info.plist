@@ -51,5 +51,14 @@
 		<string>primaryyandexloginsdk</string>
 		<string>secondaryyandexloginsdk</string>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fonts/Montserrat-Regular.ttf</string>
+		<string>Fonts/Montserrat-Medium.ttf</string>
+		<string>Fonts/Montserrat-SemiBold.ttf</string>
+		<string>Fonts/Montserrat-Bold.ttf</string>
+		<string>Fonts/Montserrat-ExtraBold.ttf</string>
+		<string>Fonts/Roboto-Medium.ttf</string>
+	</array>
 </dict>
 </plist>

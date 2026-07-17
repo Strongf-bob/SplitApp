@@ -6,7 +6,7 @@ struct FriendsNavigationHeader: View {
     var body: some View {
         HStack(alignment: .center) {
             Text("Друзья")
-                .font(.system(size: 36, weight: .black, design: .rounded))
+                .font(AppTypography.montserrat(.extraBold, size: 36, relativeTo: .largeTitle))
                 .foregroundStyle(.white)
 
             Spacer()

@@ -5,7 +5,10 @@ struct FriendsView: View {
     @ObservedObject private var networkMonitor: NetworkMonitor
     @ObservedObject private var inviteStore: FriendInviteStore
     @State private var shareItem: ShareItem?
-    @State private var isAddingFriend = false
+    @ObservedObject private var friendInviteCenter = FriendInviteLinkCenter.shared
+    @State private var showsAddFriendChoices = false
+    @State private var addFriendSheet: AddFriendSheet?
+    @State private var addFriendAlert: String?
 
     init(
         friendsRepository: any FriendsRepository,
@@ -37,6 +40,7 @@ struct FriendsView: View {
         .navigationBarHidden(true)
         .task {
             await viewModel.load()
+            presentPendingAirDropInviteIfNeeded()
         }
         .task(id: inviteStore.pendingToken) {
             guard let token = inviteStore.pendingToken else { return }
@@ -73,8 +77,48 @@ struct FriendsView: View {
                 }
             )
         }
-        .sheet(isPresented: $isAddingFriend) {
-            AddFriendView(viewModel: viewModel)
+        .onChange(of: friendInviteCenter.pendingPhone) { _, phone in
+            if phone != nil { presentPendingAirDropInviteIfNeeded() }
+        }
+        .confirmationDialog(
+            "Как добавить друга?",
+            isPresented: $showsAddFriendChoices,
+            titleVisibility: .visible
+        ) {
+            Button("Через AirDrop") { presentAirDrop() }
+            Button("По номеру телефона") { addFriendSheet = .phone }
+            Button("Из контактов") { addFriendSheet = .contacts }
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text("Выберите удобный способ")
+        }
+        .sheet(item: $addFriendSheet) { sheet in
+            switch sheet {
+            case .phone:
+                AddFriendView(viewModel: viewModel)
+            case .contacts:
+                ContactPhonePicker { phone in
+                    viewModel.friendPhone = phone
+                    addFriendSheet = nil
+                    Task { @MainActor in
+                        await Task.yield()
+                        addFriendSheet = .phone
+                    }
+                }
+            case let .airDrop(items):
+                ActivityShareSheet(items: items)
+            }
+        }
+        .alert(
+            "Не удалось открыть способ добавления",
+            isPresented: Binding(
+                get: { addFriendAlert != nil },
+                set: { if !$0 { addFriendAlert = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(addFriendAlert ?? "")
         }
     }
 }
@@ -104,7 +148,7 @@ private extension FriendsView {
 
     var header: some View {
         FriendsNavigationHeader {
-            isAddingFriend = true
+            showsAddFriendChoices = true
         }
             .onTapGesture {
                 hideKeyboard()
@@ -254,6 +298,41 @@ private extension FriendsView {
         Color.clear
             .frame(minHeight: 100)
             .contentShape(Rectangle())
+    }
+
+    func presentAirDrop() {
+        guard let currentUser = CurrentUserStore.shared.user,
+              let phone = currentUser.phoneNumber,
+              let link = FriendInviteLink.make(phone: phone)
+        else {
+            addFriendAlert = "В профиле нет номера телефона для приглашения через AirDrop."
+            return
+        }
+        addFriendSheet = .airDrop(items: [
+            "Добавь \(currentUser.name) в друзья в SplitApp",
+            link
+        ])
+    }
+
+    func presentPendingAirDropInviteIfNeeded() {
+        guard let phone = friendInviteCenter.consume() else { return }
+        viewModel.friendPhone = phone
+        addFriendSheet = .phone
+        Task { await viewModel.searchRegisteredUser() }
+    }
+}
+
+private enum AddFriendSheet: Identifiable {
+    case phone
+    case contacts
+    case airDrop(items: [Any])
+
+    var id: String {
+        switch self {
+        case .phone: "phone"
+        case .contacts: "contacts"
+        case .airDrop: "airdrop"
+        }
     }
 }
 

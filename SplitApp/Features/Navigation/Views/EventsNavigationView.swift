@@ -3,6 +3,7 @@ import SwiftUI
 struct EventsNavigationView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel: EventsNavigationViewModel
+    @StateObject private var inboxViewModel: InvitationInboxViewModel
     private let eventsRepository: any EventsRepository
     private let receiptsRepository: any ReceiptsRepository
     private let usersRepository: any UsersRepository
@@ -31,6 +32,9 @@ struct EventsNavigationView: View {
                 rules: rules
             )
         )
+        _inboxViewModel = StateObject(
+            wrappedValue: InvitationInboxViewModel(repository: InvitationInboxDataRepository())
+        )
     }
 
     var body: some View {
@@ -44,6 +48,8 @@ struct EventsNavigationView: View {
                 } else {
                     EventsHomeView(
                         viewModel: viewModel.homeViewModel,
+                        networkMonitor: networkMonitor,
+                        hasUnreadInvitations: !inboxViewModel.invitations.isEmpty,
                         onScanTap: { viewModel.handle(.scanButtonTapped) },
                         onAddTap: { viewModel.handle(.addButtonTapped) },
                         onBillTap: { billId in
@@ -63,6 +69,7 @@ struct EventsNavigationView: View {
             }
             .task {
                 await viewModel.loadInitialDataIfNeeded()
+                await inboxViewModel.load()
             }
             .onAppear {
                 Task {
@@ -89,6 +96,8 @@ struct EventsNavigationView: View {
                 case .eventDetails:
                     EventsHomeView(
                         viewModel: viewModel.homeViewModel,
+                        networkMonitor: networkMonitor,
+                        hasUnreadInvitations: !inboxViewModel.invitations.isEmpty,
                         onScanTap: { viewModel.handle(.scanButtonTapped) },
                         onAddTap: { viewModel.handle(.addButtonTapped) },
                         onBillTap: { billId in
@@ -102,7 +111,7 @@ struct EventsNavigationView: View {
                         showsNavigationBar: true
                     )
                 case .inbox:
-                    InboxView()
+                    InboxView(viewModel: inboxViewModel, networkMonitor: networkMonitor)
                 }
             }
         }

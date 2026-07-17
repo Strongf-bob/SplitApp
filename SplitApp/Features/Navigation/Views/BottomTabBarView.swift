@@ -4,6 +4,7 @@ struct BottomTabBarView: View {
     private let configuration: BottomTabConfiguration
     @State private var selectedTab: BottomTabID
     @ObservedObject private var inviteStore = FriendInviteStore.shared
+    @ObservedObject private var friendInviteCenter = FriendInviteLinkCenter.shared
 
     init(configuration: BottomTabConfiguration) {
         self.configuration = configuration
@@ -22,12 +23,17 @@ struct BottomTabBarView: View {
         }
         .tint(AppTheme.accent)
         .onAppear {
-            if inviteStore.pendingToken != nil {
+            if inviteStore.pendingToken != nil || friendInviteCenter.pendingPhone != nil {
                 selectedTab = .friends
             }
         }
         .onChange(of: inviteStore.pendingToken) { _, token in
             if token != nil {
+                selectedTab = .friends
+            }
+        }
+        .onChange(of: friendInviteCenter.pendingPhone) { _, phone in
+            if phone != nil {
                 selectedTab = .friends
             }
         }
