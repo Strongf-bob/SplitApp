@@ -60,9 +60,9 @@ final class BillViewModel: ObservableObject {
     var title: String {
         switch mode {
         case .create:
-            "Ввод чека"
+            "Добавление платежа"
         case .edit:
-            "Чек"
+            "Просмотр чека"
         }
     }
 
@@ -90,7 +90,7 @@ final class BillViewModel: ObservableObject {
     }
 
     var saveButtonTitle: String {
-        isSaving ? "Сохраняем..." : "Разделить счёт"
+        isSaving ? "Сохраняем..." : "Создать платёж"
     }
 
     private var saveDisabledReason: String? {

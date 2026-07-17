@@ -3,6 +3,7 @@ import SwiftUI
 struct EventsHomeView: View {
     @ObservedObject var viewModel: EventsHomeViewModel
     @ObservedObject var networkMonitor: NetworkMonitor
+    @ObservedObject private var currentUserStore = CurrentUserStore.shared
     let hasUnreadInvitations: Bool
 
     let onScanTap: () -> Void
@@ -30,6 +31,7 @@ struct EventsHomeView: View {
 
     private var hero: some View {
         VStack(spacing: 18) {
+            homeHeader
             BalanceCardView(summary: viewModel.balanceSummary)
 
             Button(action: onEventTap) {
@@ -55,28 +57,69 @@ struct EventsHomeView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 32)
+        .padding(.top, 8)
         .padding(.bottom, 20)
+    }
+
+    private var homeHeader: some View {
+        HStack(spacing: 14) {
+            Button {
+                AppTabCenter.shared.select(.profile)
+            } label: {
+                ZStack {
+                    Circle().fill(Color(hex: "#4C6096"))
+                    if let initials = currentUserStore.user?.initials {
+                        Text(initials)
+                            .font(AppTypography.montserrat(.semibold, size: 14, relativeTo: .caption))
+                            .foregroundStyle(.white)
+                    } else {
+                        Image(systemName: "person")
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Открыть профиль")
+
+            Text(currentUserStore.user?.name ?? "Профиль")
+                .font(AppTypography.robotoMedium(size: 22, relativeTo: .title3))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+
+            Spacer()
+
+            Button(action: onEventTap) {
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color(hex: "#4C6096"), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Добавить событие")
+        }
     }
 
     private var activityPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Активность")
-                    .font(.title3.weight(.bold))
+                    .font(AppTypography.montserrat(.semibold, size: 20, relativeTo: .title3))
+                    .foregroundStyle(.white)
                 Spacer()
                 Text("Все")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentDark)
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(AppTheme.accent.opacity(0.16), in: Capsule())
+                    .background(.white.opacity(0.14), in: Capsule())
             }
 
             if viewModel.currentEventBills.isEmpty {
                 Text("Добавьте первый чек или платёж в событие")
                     .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
+                    .foregroundStyle(.white.opacity(0.75))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 12)
             } else {
@@ -98,8 +141,9 @@ struct EventsHomeView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(AppTheme.contentSurface, in: UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30))
-        .background(AppTheme.contentSurface.ignoresSafeArea(edges: .bottom))
+        .background(Color(hex: "#7988B0"), in: RoundedRectangle(cornerRadius: 22))
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
     }
 
     private var emptyEventCard: some View {
@@ -192,21 +236,38 @@ private struct BalanceCardView: View {
     let summary: EventBalanceSummary
 
     var body: some View {
-        VStack(alignment: .center, spacing: 10) {
+        VStack(alignment: .center, spacing: 0) {
             Text(summary.totalBalance.rubleText(signed: true, minimumFractionDigits: 0))
-                .font(.system(size: 46, weight: .black, design: .rounded))
+                .font(AppTypography.montserrat(.extraBold, size: 46, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
-            HStack(spacing: 14) {
-                Label(summary.owedToYou.rubleText(signed: false, minimumFractionDigits: 0), systemImage: "arrow.up")
-                    .foregroundStyle(.white)
-                Label(summary.youOwe.rubleText(signed: false, minimumFractionDigits: 0), systemImage: "arrow.down")
-                    .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 104)
+                .background(Color(hex: "#1F387C"), in: RoundedRectangle(cornerRadius: 22))
+
+            HStack(spacing: 24) {
+                balanceColumn(title: "Вы должны", amount: summary.youOwe)
+                balanceColumn(title: "Вам должны", amount: summary.owedToYou)
             }
-            .font(.headline.weight(.semibold))
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, minHeight: 82)
+            .background(Color(hex: "#7988B0"), in: RoundedRectangle(cornerRadius: 22))
+            .padding(.horizontal, 10)
+            .offset(y: -10)
         }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func balanceColumn(title: String, amount: Double) -> some View {
+        VStack(spacing: 8) {
+            Text(title)
+                .font(AppTypography.montserrat(.semibold, size: 14, relativeTo: .caption))
+            Text(amount.rubleText(signed: false, minimumFractionDigits: 0))
+                .font(AppTypography.montserrat(.medium, size: 18, relativeTo: .headline))
+                .monospacedDigit()
+        }
+        .foregroundStyle(.white)
         .frame(maxWidth: .infinity)
     }
 }
@@ -222,16 +283,16 @@ private struct ActivityRow: View {
                 .background(AppTheme.accent.opacity(0.14), in: Circle())
             VStack(alignment: .leading, spacing: 3) {
                 Text(bill.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
+                    .font(AppTypography.montserrat(.semibold, size: 15, relativeTo: .subheadline))
+                    .foregroundStyle(.white)
                 Text(bill.subtitle)
                     .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
+                    .foregroundStyle(.white.opacity(0.65))
             }
             Spacer()
             Text(bill.amount.rubleText(signed: bill.tone == .negative, minimumFractionDigits: 0))
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(bill.tone == .negative ? .red : .green)
+                .foregroundStyle(.white)
         }
         .padding(.vertical, 10)
     }

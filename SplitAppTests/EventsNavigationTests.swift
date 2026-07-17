@@ -18,6 +18,22 @@ final class EventsNavigationTests: XCTestCase {
         XCTAssertEqual(viewModel.homeViewModel.currentEvent?.id, catalogEvent.id)
     }
 
+    func testCreatePaymentClearsNavigationAndPresentsNewPayment() {
+        let event = Event(name: "Поездка")
+        let viewModel = makeNavigationViewModel(event: event)
+        viewModel.path = [.eventPicker]
+
+        viewModel.createPayment(in: event.id)
+
+        XCTAssertTrue(viewModel.path.isEmpty)
+        guard case let .create(eventId, scannedItems, imageData) = viewModel.billEntryDestination?.mode else {
+            return XCTFail("Expected a create-payment destination")
+        }
+        XCTAssertEqual(eventId, event.id)
+        XCTAssertTrue(scannedItems.isEmpty)
+        XCTAssertNil(imageData)
+    }
+
     private func makeNavigationViewModel(event: Event) -> EventsNavigationViewModel {
         EventsNavigationViewModel(
             homeViewModel: EventsHomeViewModel(

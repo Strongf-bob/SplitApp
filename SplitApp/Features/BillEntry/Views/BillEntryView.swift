@@ -141,9 +141,28 @@ struct BillEntryView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Отмена", action: dismissView)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .font(.system(size: 17))
+                    Button(action: dismissView) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .frame(width: 40, height: 40)
+                            .background(AppTheme.inputBackground, in: Circle())
+                    }
+                    .accessibilityLabel("Закрыть")
+                }
+
+                if !viewModel.isReadOnly {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: saveAndDismiss) {
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(AppTheme.accent, in: Circle())
+                        }
+                        .disabled(!viewModel.canSave)
+                        .accessibilityLabel("Создать платёж")
+                    }
                 }
             }
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)

@@ -29,6 +29,6 @@ struct CurrentEventCardView: View {
                 .foregroundStyle(.white.opacity(0.55))
         }
         .padding(18)
-        .background(.black.opacity(0.92), in: RoundedRectangle(cornerRadius: 20))
+        .background(Color(hex: "#4C6096"), in: RoundedRectangle(cornerRadius: 22))
     }
 }
