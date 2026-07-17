@@ -125,7 +125,7 @@ struct FriendsView: View {
 
 private extension FriendsView {
     var background: some View {
-        AppTheme.figmaHero
+        Color.white
             .ignoresSafeArea()
             .dismissKeyboardOnTap()
     }
@@ -133,23 +133,20 @@ private extension FriendsView {
     var content: some View {
         VStack(spacing: 0) {
             header
-            VStack(spacing: 0) {
-                offlineBanner
-                searchBar
-                scrollContent
-            }
-            .background(
-                AppTheme.contentSurface,
-                in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28)
-            )
-            .background(AppTheme.contentSurface.ignoresSafeArea(edges: .bottom))
+            offlineBanner
+            searchBar
+            scrollContent
         }
+        .padding(.top, 8)
     }
 
     var header: some View {
-        FriendsNavigationHeader {
-            showsAddFriendChoices = true
-        }
+        SplitAppHeader(
+            actionSystemImage: "plus",
+            actionAccessibilityLabel: "Добавить друга",
+            onAction: { showsAddFriendChoices = true }
+        )
+            .padding(.horizontal, 16)
             .onTapGesture {
                 hideKeyboard()
             }
@@ -157,9 +154,9 @@ private extension FriendsView {
 
     var searchBar: some View {
         SearchBar(searchText: $viewModel.searchText)
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 16)
+            .padding(.top, 35)
+            .padding(.bottom, 10)
     }
 
     @ViewBuilder
@@ -191,15 +188,18 @@ private extension FriendsView {
 
     var scrollContent: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            LazyVStack(spacing: 10) {
                 activeDebtsSection
                 requestsSection
-                allFriendsSection
+                ForEach(viewModel.filteredFriends) { friend in
+                    FriendRowView(friend: friend)
+                }
                 loadingState
                 errorState
                 emptyState
                 bottomSpacer
             }
+            .padding(.horizontal, 16)
             .padding(.bottom, 32)
         }
         .refreshable {
@@ -244,22 +244,6 @@ private extension FriendsView {
                 Task { await viewModel.reject(friendship) }
             }
         )
-    }
-
-    @ViewBuilder
-    var allFriendsSection: some View {
-        if !viewModel.filteredFriends.isEmpty {
-            AllFriendsSection(
-                friends: viewModel.filteredFriends,
-                startIndex: viewModel.activeDebts.count
-            )
-        } else if !viewModel.isLoading, viewModel.searchText.isEmpty {
-            Text("Подтверждённые друзья появятся здесь.")
-                .font(.system(size: 15, weight: .regular, design: .rounded))
-                .foregroundStyle(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-        }
     }
 
     @ViewBuilder

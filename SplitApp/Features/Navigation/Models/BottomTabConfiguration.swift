@@ -3,10 +3,9 @@ import Combine
 
 enum BottomTabID: String, Hashable {
     case home
-    case events
     case friends
     case splitik
-    case profile
+    case events
 }
 
 @MainActor
@@ -14,6 +13,7 @@ final class AppTabCenter: ObservableObject {
     static let shared = AppTabCenter()
 
     @Published private(set) var requestedTab: BottomTabID?
+    @Published private(set) var isProfilePresented = false
 
     func select(_ tab: BottomTabID) {
         requestedTab = tab
@@ -21,6 +21,14 @@ final class AppTabCenter: ObservableObject {
 
     func consume() {
         requestedTab = nil
+    }
+
+    func openProfile() {
+        isProfilePresented = true
+    }
+
+    func closeProfile() {
+        isProfilePresented = false
     }
 }
 
@@ -46,13 +54,16 @@ struct BottomTabItem: Identifiable {
 struct BottomTabConfiguration {
     let items: [BottomTabItem]
     let initialTab: BottomTabID
+    let makeProfileView: () -> AnyView
 
     init(
         items: [BottomTabItem],
-        initialTab: BottomTabID = .events
+        initialTab: BottomTabID = .events,
+        @ViewBuilder makeProfileView: @escaping () -> some View
     ) {
         self.items = items
         self.initialTab = initialTab
+        self.makeProfileView = { AnyView(makeProfileView()) }
     }
 }
 
@@ -115,16 +126,12 @@ extension BottomTabConfiguration {
                     systemImage: "calendar"
                 ) {
                     eventsView(true)
-                },
-                BottomTabItem(
-                    id: .profile,
-                    title: "Профиль",
-                    systemImage: "person.crop.circle"
-                ) {
-                    ProfileScreenView(viewModel: profileVM)
                 }
             ],
-            initialTab: .home
+            initialTab: .home,
+            makeProfileView: {
+                ProfileScreenView(viewModel: profileVM)
+            }
         )
     }
 

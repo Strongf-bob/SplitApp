@@ -14,7 +14,6 @@ enum BottomTabPresentation {
         .init(id: .home, title: "Главная", systemImage: "house.fill", accessibilityLabel: "Главная", isPrimaryAction: false, showsTitle: true),
         .init(id: .friends, title: "Друзья", systemImage: "person.2.fill", accessibilityLabel: "Друзья", isPrimaryAction: false, showsTitle: true),
         .init(id: .splitik, title: "Сплитик", systemImage: "sparkles", accessibilityLabel: "Сплитик", isPrimaryAction: true, showsTitle: true),
-        .init(id: .events, title: "События", systemImage: "calendar", accessibilityLabel: "События", isPrimaryAction: false, showsTitle: true),
-        .init(id: .profile, title: "Профиль", systemImage: "person.fill", accessibilityLabel: "Профиль", isPrimaryAction: false, showsTitle: true)
+        .init(id: .events, title: "События", systemImage: "calendar", accessibilityLabel: "События", isPrimaryAction: false, showsTitle: true)
     ]
 }

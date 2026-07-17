@@ -5,6 +5,18 @@ enum AppAppearance {
     static let preferredColorScheme: ColorScheme = .light
 }
 
+enum SplitAppDesignTokens {
+    static let primaryBlueHex = "#1F387C"
+    static let secondaryBlueHex = "#4C6096"
+    static let tertiaryBlueHex = "#7988B0"
+    static let disabledSurfaceHex = "#F2F2F2"
+    static let secondaryTextHex = "#999999"
+    static let successHex = "#4AB783"
+
+    static let cardCornerRadius: CGFloat = 21
+    static let modalCornerRadius: CGFloat = 32
+}
+
 enum AppTheme {
     private static func dynamicColor(light: String, dark: String) -> Color {
         Color(
@@ -39,18 +51,18 @@ enum AppTheme {
     }
 
     static var accent: Color {
-        dynamicColor(light: "#315EF5", dark: "#9DB4FF")
+        dynamicColor(light: SplitAppDesignTokens.primaryBlueHex, dark: "#9DB4FF")
     }
 
     static var accentDark: Color {
-        dynamicColor(light: "#2449CC", dark: "#C5D1FF")
+        dynamicColor(light: "#182D67", dark: "#C5D1FF")
     }
 
     static var accentGradient: LinearGradient {
         LinearGradient(
             colors: [
                 dynamicColor(light: "#315EF5", dark: "#9DB4FF"),
-                dynamicColor(light: "#2348C7", dark: "#6F8CFF")
+                dynamicColor(light: SplitAppDesignTokens.primaryBlueHex, dark: "#6F8CFF")
             ],
             startPoint: .leading,
             endPoint: .trailing
@@ -66,7 +78,7 @@ enum AppTheme {
     }
 
     static var textSecondary: Color {
-        dynamicColor(light: "#67708A", dark: "#B6C0DC")
+        dynamicColor(light: SplitAppDesignTokens.secondaryTextHex, dark: "#B6C0DC")
     }
 
     static var textTertiary: Color {
@@ -121,7 +133,27 @@ enum AppTheme {
     }
 
     static var contentSurface: Color {
-        dynamicColor(light: "#F5F5F7", dark: "#11182A")
+        dynamicColor(light: SplitAppDesignTokens.disabledSurfaceHex, dark: "#11182A")
+    }
+
+    static var pdfPrimaryBlue: Color {
+        dynamicColor(light: SplitAppDesignTokens.primaryBlueHex, dark: "#9DB4FF")
+    }
+
+    static var pdfSecondaryBlue: Color {
+        dynamicColor(light: SplitAppDesignTokens.secondaryBlueHex, dark: "#7387BE")
+    }
+
+    static var pdfTertiaryBlue: Color {
+        dynamicColor(light: SplitAppDesignTokens.tertiaryBlueHex, dark: "#8797C3")
+    }
+
+    static var disabledSurface: Color {
+        dynamicColor(light: SplitAppDesignTokens.disabledSurfaceHex, dark: "#242B3D")
+    }
+
+    static var success: Color {
+        dynamicColor(light: SplitAppDesignTokens.successHex, dark: "#64CCA0")
     }
 
     static var tabGlassTint: Color {

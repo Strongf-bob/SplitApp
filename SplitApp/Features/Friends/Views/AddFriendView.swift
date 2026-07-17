@@ -7,132 +7,118 @@ struct AddFriendView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 18) {
-                nameField
-                phoneField
-                actionButton
-                message
-                Spacer(minLength: 0)
+            VStack(spacing: 0) {
+                SplitAppModalHeader(
+                    title: "Добавление друга",
+                    onClose: { dismiss() },
+                    canPerformPrimary: canSubmit,
+                    onPrimary: performPrimaryAction
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+                VStack(alignment: .leading, spacing: 18) {
+                    nameField
+                    phoneField
+                    actionButton
+                    message
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 32)
+                .padding(.top, 18)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 22)
             .background(Color.white.ignoresSafeArea())
-            .navigationTitle("Добавление друга")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { toolbar }
+            .toolbar(.hidden, for: .navigationBar)
         }
         .presentationDragIndicator(.visible)
-        .presentationCornerRadius(32)
+        .presentationCornerRadius(SplitAppDesignTokens.modalCornerRadius)
         .onAppear { isPhoneFocused = true }
     }
 }
 
 private extension AddFriendView {
     var nameField: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Имя")
-                .font(AppTypography.montserrat(.medium, size: 21, relativeTo: .title3))
-                .foregroundStyle(AppTheme.textPrimary)
-
-            Text(viewModel.foundUser?.name ?? "Найдётся по номеру")
-                .font(AppTypography.montserrat(size: 18))
-                .foregroundStyle(viewModel.foundUser == nil ? AppTheme.textTertiary : AppTheme.textPrimary)
-                .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-                .padding(.horizontal, 20)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(AppTheme.textTertiary, lineWidth: 2)
-                }
-                .accessibilityLabel("Имя найденного пользователя")
-        }
+        outlinedField(
+            title: "Имя",
+            value: viewModel.foundUser?.name ?? "Пример: Иван",
+            isPlaceholder: viewModel.foundUser == nil
+        )
+        .accessibilityLabel("Имя найденного пользователя")
     }
 
     var phoneField: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 9) {
             Text("Введите номер телефона")
-                .font(AppTypography.montserrat(.medium, size: 21, relativeTo: .title3))
+                .font(.system(size: 20, weight: .regular))
                 .foregroundStyle(AppTheme.textPrimary)
 
-            TextField("+7", text: $viewModel.friendPhone)
-                .font(AppTypography.montserrat(size: 18))
+            TextField("+ 7", text: $viewModel.friendPhone)
+                .font(.system(size: 17))
                 .foregroundStyle(AppTheme.textPrimary)
                 .keyboardType(.phonePad)
                 .textContentType(.telephoneNumber)
                 .focused($isPhoneFocused)
-                .frame(minHeight: 64)
-                .padding(.horizontal, 20)
+                .frame(minHeight: 57)
+                .padding(.horizontal, 25)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(isPhoneFocused ? AppTheme.accent : AppTheme.textTertiary, lineWidth: 2)
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(isPhoneFocused ? AppTheme.pdfPrimaryBlue : AppTheme.textSecondary, lineWidth: 1)
                 }
                 .submitLabel(.search)
                 .onSubmit { performPrimaryAction() }
         }
     }
 
-    var actionButton: some View {
-        Button(action: performPrimaryAction) {
-            Group {
-                if viewModel.isSearchingFriend || viewModel.isSendingFriendRequest {
-                    ProgressView().tint(.white)
-                } else {
-                    Text(viewModel.foundUser == nil ? "Найти друга" : "Добавить друга")
-                        .font(AppTypography.montserrat(.medium, size: 20, relativeTo: .headline))
+    func outlinedField(title: String, value: String, isPlaceholder: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title)
+                .font(.system(size: 20, weight: .regular))
+                .foregroundStyle(AppTheme.textPrimary)
+
+            Text(value)
+                .font(.system(size: 17))
+                .foregroundStyle(isPlaceholder ? AppTheme.textSecondary : AppTheme.textPrimary)
+                .frame(maxWidth: .infinity, minHeight: 57, alignment: .leading)
+                .padding(.horizontal, 25)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(AppTheme.textSecondary, lineWidth: 1)
                 }
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, minHeight: 64)
-            .background(Color(hex: "#29458B"), in: RoundedRectangle(cornerRadius: 18))
         }
-        .buttonStyle(.plain)
-        .disabled(viewModel.friendPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || viewModel.isSearchingFriend
-            || viewModel.isSendingFriendRequest)
-        .opacity(viewModel.friendPhone.isEmpty ? 0.55 : 1)
+    }
+
+    var actionButton: some View {
+        SplitAppActionButton(
+            title: viewModel.foundUser == nil ? "Найти друга" : "Добавить друга",
+            isEnabled: canSubmit,
+            action: performPrimaryAction
+        )
     }
 
     @ViewBuilder
     var message: some View {
-        if let message = viewModel.friendSearchMessage {
+        if viewModel.isSearchingFriend || viewModel.isSendingFriendRequest {
+            ProgressView(viewModel.isSearchingFriend ? "Ищем пользователя..." : "Отправляем заявку...")
+                .font(.system(size: 15))
+        } else if let message = viewModel.friendSearchMessage {
             Label(
                 message,
                 systemImage: message == "Заявка отправлена" ? "checkmark.circle.fill" : "info.circle"
             )
-            .font(AppTypography.montserrat(.medium, size: 15, relativeTo: .subheadline))
-            .foregroundStyle(message == "Заявка отправлена" ? Color.green : AppTheme.textSecondary)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(message == "Заявка отправлена" ? AppTheme.success : AppTheme.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    @ToolbarContentBuilder
-    var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .frame(width: 42, height: 42)
-                    .background(AppTheme.inputBackground, in: Circle())
-            }
-            .accessibilityLabel("Закрыть")
-        }
-
-        ToolbarItem(placement: .confirmationAction) {
-            Button(action: performPrimaryAction) {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 42, height: 42)
-                    .background(AppTheme.accent, in: Circle())
-            }
-            .disabled(viewModel.friendPhone.isEmpty)
-            .accessibilityLabel(viewModel.foundUser == nil ? "Найти друга" : "Отправить заявку")
-        }
+    var canSubmit: Bool {
+        !viewModel.friendPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !viewModel.isSearchingFriend
+            && !viewModel.isSendingFriendRequest
     }
 
     func performPrimaryAction() {
+        guard canSubmit else { return }
         Task {
             if viewModel.foundUser == nil {
                 await viewModel.searchRegisteredUser()

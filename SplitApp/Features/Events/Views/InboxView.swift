@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct InboxView: View {
-    @State private var selection = 0
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var networkMonitor: NetworkMonitor
     @ObservedObject private var viewModel: InvitationInboxViewModel
 
@@ -19,38 +19,22 @@ struct InboxView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.figmaHero.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
             VStack(spacing: 0) {
-                Text("Уведомления")
-                    .font(AppTypography.montserrat(.extraBold, size: 36, relativeTo: .largeTitle))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 18)
-                    .padding(.bottom, 20)
+                SplitAppModalHeader(
+                    title: "Уведомления",
+                    onClose: { dismiss() }
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
 
-                VStack(spacing: 18) {
-                    Picker("Уведомления", selection: $selection) {
-                        Text("Входящие").tag(0)
-                        Text("Прочитанные").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-
-                    if selection == 0 {
-                        invitationContent
-                    } else {
-                        ContentUnavailableView(
-                            selection == 0 ? "Новых уведомлений нет" : "Прочитанных уведомлений нет",
-                            systemImage: selection == 0 ? "tray" : "checkmark.circle",
-                            description: Text("Обработанные приглашения больше не требуют действий.")
-                        )
-                        .foregroundStyle(AppTheme.textSecondary)
-                    }
+                VStack(spacing: 14) {
+                    invitationContent
                     Spacer()
                 }
-                .padding(20)
+                .padding(.horizontal, 16)
+                .padding(.top, 18)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppTheme.contentSurface, in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
             }
         }
         .navigationBarHidden(true)
@@ -127,7 +111,7 @@ private struct EventInvitationCard: View {
             }
         }
         .padding(20)
-        .background(Color(hex: "#7C90BC"), in: RoundedRectangle(cornerRadius: 20))
+        .background(AppTheme.pdfTertiaryBlue, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
     }
 
@@ -142,7 +126,7 @@ private struct EventInvitationCard: View {
                 }
             }
             .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, minHeight: 42)
+            .frame(maxWidth: .infinity, minHeight: 32)
             .background(fill, in: Capsule())
         }
         .buttonStyle(.plain)

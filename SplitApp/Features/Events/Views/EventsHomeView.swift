@@ -64,7 +64,7 @@ struct EventsHomeView: View {
     private var homeHeader: some View {
         HStack(spacing: 14) {
             Button {
-                AppTabCenter.shared.select(.profile)
+                AppTabCenter.shared.openProfile()
             } label: {
                 ZStack {
                     Circle().fill(Color(hex: "#4C6096"))

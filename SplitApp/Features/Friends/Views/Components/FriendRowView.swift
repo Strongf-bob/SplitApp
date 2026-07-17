@@ -5,27 +5,14 @@ struct FriendRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            FriendAvatar(friend: friend, size: 56)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(friend.name)
-                .font(.body.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-
-                Text("Всё закрыто")
-                .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
+            Text(friend.name)
+                .font(AppTypography.robotoMedium(size: 16, relativeTo: .body))
+                .foregroundStyle(AppTheme.textPrimary)
 
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(AppTheme.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(AppTheme.cardBorder, lineWidth: 1)
-        )
+        .padding(.horizontal, 17)
+        .frame(minHeight: 58)
+        .background(AppTheme.pdfSecondaryBlue, in: RoundedRectangle(cornerRadius: SplitAppDesignTokens.cardCornerRadius, style: .continuous))
     }
 }

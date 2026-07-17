@@ -2,11 +2,12 @@ import XCTest
 @testable import SplitApp
 
 final class BottomTabPresentationTests: XCTestCase {
-    func testFigmaNavigationUsesTheFiveExpectedDestinationsInOrder() {
+    func testPDFNavigationUsesExactlyFourExpectedDestinationsInOrder() {
         XCTAssertEqual(
             BottomTabPresentation.items.map(\.accessibilityLabel),
-            ["Главная", "Друзья", "Сплитик", "События", "Профиль"]
+            ["Главная", "Друзья", "Сплитик", "События"]
         )
+        XCTAssertEqual(BottomTabPresentation.items.count, 4)
     }
 
     func testSplitikKeepsItsCaptionInTheNavigationBar() {

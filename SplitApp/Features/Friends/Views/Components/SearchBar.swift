@@ -10,8 +10,8 @@ struct SearchBar: View {
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(AppTheme.textTertiary.opacity(0.6))
 
-            TextField("Поиск", text: $searchText)
-                .font(.system(size: 17, weight: .regular, design: .rounded))
+            TextField("Поиск своих друзей", text: $searchText)
+                .font(AppTypography.robotoMedium(size: 16, relativeTo: .body))
                 .foregroundStyle(AppTheme.textPrimary)
                 .focused($isFocused)
                 .autocorrectionDisabled()
@@ -34,15 +34,15 @@ struct SearchBar: View {
                 .transition(.scale.combined(with: .opacity))
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 24)
+        .frame(height: 58)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isFocused ? AppTheme.inputBackgroundFocused : AppTheme.inputBackground)
+            RoundedRectangle(cornerRadius: SplitAppDesignTokens.cardCornerRadius, style: .continuous)
+                .fill(Color.white)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(isFocused ? AppTheme.accent.opacity(0.3) : Color.clear, lineWidth: 1.5)
+            RoundedRectangle(cornerRadius: SplitAppDesignTokens.cardCornerRadius, style: .continuous)
+                .stroke(isFocused ? AppTheme.pdfPrimaryBlue : Color(hex: "#EDEDED"), lineWidth: 2)
         )
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: searchText.isEmpty)
