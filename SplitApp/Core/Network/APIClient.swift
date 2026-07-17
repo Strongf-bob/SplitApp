@@ -3,13 +3,16 @@ import Foundation
 final class APIClient {
     static let shared = APIClient()
 
-    private let secureStorage: KeychainStorage
+    private let secureStorage: SecureStorage
     private let baseURL = APIConfiguration.baseURL
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    private init() {
+    init(
+        session: URLSession = URLSession(configuration: .default),
+        secureStorage: SecureStorage = KeychainStorage()
+    ) {
         decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
@@ -40,8 +43,8 @@ final class APIClient {
         encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
 
-        session = URLSession(configuration: .default)
-        secureStorage = KeychainStorage()
+        self.session = session
+        self.secureStorage = secureStorage
     }
 
     func request<T: Decodable>(
@@ -85,7 +88,7 @@ final class APIClient {
                 throw NetworkError.unauthorized
             }
 
-            try await refreshAccessTokenIfNeeded()
+            try await refreshAccessTokenIfNeeded(force: true)
 
             let retryRequest = try buildRequest(endpoint: endpoint, body: body)
             let (retryData, retryResponse) = try await session.data(
@@ -107,10 +110,32 @@ final class APIClient {
         endpoint: Endpoint,
         body: (any Encodable)? = nil
     ) async throws {
+        try await performVoidRequest(endpoint: endpoint, body: body, isRetry: false)
+    }
+
+    private func performVoidRequest(
+        endpoint: Endpoint,
+        body: (any Encodable)?,
+        isRetry: Bool
+    ) async throws {
+        if requiresAuthorization(endpoint: endpoint),
+            TokenStore.shared.accessToken?.isEmpty ?? true {
+            try? await refreshAccessTokenIfNeeded()
+        }
+
         let urlRequest = try buildRequest(endpoint: endpoint, body: body)
         let (data, response) = try await session.data(for: urlRequest)
 
-        try validateResponse(response, data: data)
+        do {
+            try validateResponse(response, data: data)
+        } catch NetworkError.unauthorized {
+            if isRetry {
+                throw NetworkError.unauthorized
+            }
+
+            try await refreshAccessTokenIfNeeded(force: true)
+            try await performVoidRequest(endpoint: endpoint, body: body, isRetry: true)
+        }
     }
 
     func requestMultipart<T: Decodable>(
@@ -173,7 +198,7 @@ final class APIClient {
                 throw NetworkError.unauthorized
             }
 
-            try await refreshAccessTokenIfNeeded()
+            try await refreshAccessTokenIfNeeded(force: true)
 
             return try await performMultipartRequest(
                 endpoint: endpoint,
@@ -188,8 +213,9 @@ final class APIClient {
         }
     }
 
-    func refreshAccessTokenIfNeeded() async throws {
-        if TokenStore.shared.accessToken != nil,
+    func refreshAccessTokenIfNeeded(force: Bool = false) async throws {
+        if !force,
+            TokenStore.shared.accessToken != nil,
             TokenStore.shared.isValid {
             return
         }
