@@ -69,6 +69,15 @@ fastlane/test_output
 .swiftpm-local/
 .xcode-home/
 .xcode-tmp/
+/build/
+DerivedData/
+*.xcresult/
+/tmp/
+/graphify-out/
+
+# Ad hoc screenshots saved at the repository root
+/Screenshot *.png
+/Снимок экрана *.png
 
 backend.md
 *.backup
