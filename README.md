@@ -1,6 +1,24 @@
-# SplitApp
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="SplitApp — native iOS shared expenses from receipt to settlement">
+</p>
 
-SplitApp - iOS-приложение для совместных расходов: события, участники, чеки, доли, балансы, платежи и авторизация через Yandex OAuth.
+SplitApp — нативное iOS-приложение для совместных расходов: события,
+участники, чеки, доли, балансы, платежи и авторизация через Yandex OAuth.
+
+## Пользовательский поток
+
+```text
+событие → чек → позиции и участники → доли → баланс → подтверждение платежа
+```
+
+Кодовая база включает SwiftUI feature-модули, интеграцию с backend API,
+Core Data, Keychain-хранилище токенов и unit-тесты доменных/UI-контрактов.
+
+## Быстрый старт
+
+1. Откройте `SplitApp.xcodeproj` в Xcode.
+2. Выберите scheme `SplitApp`.
+3. Запустите приложение на iOS Simulator или устройстве.
 
 ## Быстрые ссылки
 
@@ -38,10 +56,9 @@ SplitApp - iOS-приложение для совместных расходов
 
 ## Разработка
 
-1. Открыть `SplitApp.xcodeproj` в Xcode.
-2. Выбрать scheme `SplitApp`.
-3. Запустить приложение на iOS Simulator или устройстве.
-4. Для backend-разработки держать рядом репозиторий [SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend) и сверять изменения с [Backend Integration](docs/wiki/Backend-Integration.md).
+Для backend-разработки держите рядом
+[SplitAppBackend](https://github.com/Strongf-bob/SplitAppBackend) и сверяйте
+изменения с [Backend Integration](docs/wiki/Backend-Integration.md).
 
 Перед изменениями сетевого контракта синхронизируйте:
 
